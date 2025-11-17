@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1053694954642",
+    "project_id": "flutter-demo-dws",
+    "storage_bucket": "flutter-demo-dws.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1053694954642:android:6ef30dbf7a5d10825eea4b",
+        "android_client_info": {
+          "package_name": "com.example.flutter_demo_dws"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyApFAT8LdrJa6JSDTP0YwQ8RyaG_P4jnKA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

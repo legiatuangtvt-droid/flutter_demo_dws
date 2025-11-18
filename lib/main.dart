@@ -134,7 +134,25 @@ class _SchedulePageState extends State<SchedulePage> {
     );
   }
   
-  AppBar _buildAppBar() { return AppBar(title: Text(_storeName)); }
+  AppBar _buildAppBar() {
+    return AppBar(
+      title: Text(_storeName, style: const TextStyle(fontSize: 16)),
+      centerTitle: true,
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(_currentUserName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              Text(_currentUserRole, style: const TextStyle(fontSize: 12.0, color: Colors.black54)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
   
   Drawer _buildDrawer() {
     return Drawer(

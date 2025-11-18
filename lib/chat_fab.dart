@@ -110,15 +110,23 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
     _fetchData();
   }
 
+  // --- UPDATED FUNCTION ---
   Future<void> _fetchData() async {
     try {
       final firestore = FirebaseFirestore.instance;
-      final rolesSnapshot = await firestore.collection('roles').get();
-      final employeesSnapshot = await firestore.collection('employee').get();
+
+      // Run both Firestore queries in parallel
+      final results = await Future.wait([
+        firestore.collection('roles').get(),
+        firestore.collection('employee').get(),
+      ]);
+
+      final rolesSnapshot = results[0] as QuerySnapshot;
+      final employeesSnapshot = results[1] as QuerySnapshot;
 
       setState(() {
-        _roles = rolesSnapshot.docs.map((doc) => doc.data()).toList();
-        _employees = employeesSnapshot.docs.map((doc) => doc.data()).toList();
+        _roles = rolesSnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+        _employees = employeesSnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -126,6 +134,7 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
         _isLoading = false;
       });
       // Handle error, maybe show a toast
+      print("Error fetching data in parallel: $e");
     }
   }
 

@@ -82,12 +82,21 @@ class _SchedulePageState extends State<SchedulePage> {
     super.dispose();
   }
 
+  // Dán đoạn code này vào class _SchedulePageState, thay thế cho hàm _fetchInitialData() hiện tại.
+
   Future<void> _fetchInitialData() async {
     try {
       final results = await Future.wait([
-        FirebaseFirestore.instance.collection('stores').doc(_defaultStoreId).get(),
-        FirebaseFirestore.instance.collection('employee').where('storeId', isEqualTo: _defaultStoreId).get(),
-        FirebaseFirestore.instance.collection('daily_templates').doc('TEST').get(),
+        FirebaseFirestore.instance
+            .collection('stores')
+            .doc(_defaultStoreId)
+            .get(),
+        FirebaseFirestore.instance.collection('employee').where(
+            'storeId', isEqualTo: _defaultStoreId).get(),
+        FirebaseFirestore.instance
+            .collection('daily_templates')
+            .doc('TEST')
+            .get(),
         FirebaseFirestore.instance.collection('task_groups').get(),
       ]);
 
@@ -96,14 +105,48 @@ class _SchedulePageState extends State<SchedulePage> {
       final templateDoc = results[2] as DocumentSnapshot;
       final taskGroupsSnapshot = results[3] as QuerySnapshot;
 
-      final employees = employeesSnapshot.docs.map((doc) => {'id': doc.id, ...doc.data() as Map<String, dynamic>}).toList();
-      final schedule = (templateDoc.data() as Map<String, dynamic>)['schedule'] ?? {};
-      final taskGroups = taskGroupsSnapshot.docs.map((doc) => {'id': doc.id, ...doc.data() as Map<String, dynamic>}).toList();
+      final allEmployees = employeesSnapshot.docs.map((doc) =>
+      {
+        'id': doc.id,
+        ...doc.data() as Map<String, dynamic>
+      }).toList();
+      final schedule = (templateDoc.data() as Map<String, dynamic>)['schedule'] ??
+          {};
+      final taskGroups = taskGroupsSnapshot.docs.map((doc) =>
+      {
+        'id': doc.id,
+        ...doc.data() as Map<String, dynamic>
+      }).toList();
+
+      // --- PHẦN CHỈNH SỬA ---
+      // Lọc danh sách nhân viên để chỉ giữ lại những người có ca làm việc trong `schedule`.
+      // Logic này giả định rằng nhân viên được gán vào các ca theo thứ tự (nhân viên thứ 0 -> ca 'shift-1', nhân viên thứ 1 -> ca 'shift-2', v.v.).
+      final scheduledEmployees = <Map<String, dynamic>>[];
+      final sortedShiftKeys = schedule.keys.toList()
+        ..sort((a, b) {
+          final numA = int.tryParse(a
+              .split('-')
+              .last) ?? 0;
+          final numB = int.tryParse(b
+              .split('-')
+              .last) ?? 0;
+          return numA.compareTo(numB);
+        });
+
+      // Chỉ thêm nhân viên nếu họ nằm trong phạm vi số lượng ca làm việc đã được định nghĩa.
+      for (int i = 0; i < allEmployees.length; i++) {
+        if (i < sortedShiftKeys.length) {
+          scheduledEmployees.add(allEmployees[i]);
+        }
+      }
+      // --- KẾT THÚC CHỈNH SỬA ---
 
       if (mounted) {
         setState(() {
-          _storeName = (storeDoc.data() as Map<String, dynamic>)['name'] ?? _storeName;
-          _storeEmployees = employees;
+          _storeName =
+              (storeDoc.data() as Map<String, dynamic>)['name'] ?? _storeName;
+          // Sử dụng danh sách nhân viên đã được lọc
+          _storeEmployees = scheduledEmployees;
           _scheduleData = schedule;
           _taskGroups = taskGroups;
           _isLoading = false;
@@ -326,3 +369,4 @@ class _SchedulePageState extends State<SchedulePage> {
     );
   }
 }
+

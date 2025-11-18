@@ -57,11 +57,12 @@ class _SchedulePageState extends State<SchedulePage> {
   Map<String, dynamic> _scheduleData = {};
   List<Map<String, dynamic>> _taskGroups = [];
 
-  // Scroll controllers
+  // --- PHẦN CHỈNH SỬA ---
+  // Scroll controllers for sticky header and column
   final ScrollController _horizontalBodyController = ScrollController();
   final ScrollController _verticalBodyController = ScrollController();
-  // --- PHẦN CHỈNH SỬA ---
   final ScrollController _horizontalHeaderController = ScrollController();
+  final ScrollController _verticalFirstColumnController = ScrollController();
   // --- KẾT THÚC CHỈNH SỬA ---
 
   @override
@@ -70,7 +71,7 @@ class _SchedulePageState extends State<SchedulePage> {
     _fetchInitialData();
 
     // --- PHẦN CHỈNH SỬA ---
-    // Synchronize scroll controllers
+    // Synchronize horizontal scroll controllers
     _horizontalHeaderController.addListener(() {
       if (_horizontalBodyController.hasClients &&
           _horizontalBodyController.offset !=
@@ -86,6 +87,21 @@ class _SchedulePageState extends State<SchedulePage> {
         _horizontalHeaderController.jumpTo(_horizontalBodyController.offset);
       }
     });
+
+    // Synchronize vertical scroll controllers
+    _verticalFirstColumnController.addListener(() {
+      if (_verticalBodyController.hasClients &&
+          _verticalBodyController.offset != _verticalFirstColumnController.offset) {
+        _verticalBodyController.jumpTo(_verticalFirstColumnController.offset);
+      }
+    });
+
+    _verticalBodyController.addListener(() {
+      if (_verticalFirstColumnController.hasClients &&
+          _verticalFirstColumnController.offset != _verticalBodyController.offset) {
+        _verticalFirstColumnController.jumpTo(_verticalBodyController.offset);
+      }
+    });
     // --- KẾT THÚC CHỈNH SỬA ---
   }
 
@@ -93,11 +109,13 @@ class _SchedulePageState extends State<SchedulePage> {
   void dispose() {
     // --- PHẦN CHỈNH SỬA ---
     _horizontalHeaderController.dispose();
+    _verticalFirstColumnController.dispose();
     // --- KẾT THÚC CHỈNH SỬA ---
     _horizontalBodyController.dispose();
     _verticalBodyController.dispose();
     super.dispose();
   }
+
 
   Future<void> _fetchInitialData() async {
     try {
@@ -263,13 +281,21 @@ class _SchedulePageState extends State<SchedulePage> {
     const double headerHeight = 48.0;
     const double borderWidth = 1.5;
 
-    // Header cho các cột giờ
+    // ---- CỘT CỐ ĐỊNH ----
+    final employeeNameCells = List.generate(_storeEmployees.length, (rowIndex) {
+      final employee = _storeEmployees[rowIndex];
+      final isEven = rowIndex % 2 == 0;
+      final rowBgColor = isEven ? Colors.white : const Color(0xFFF8F9FA);
+      return _buildCell(employee['name'] ?? 'N/A', firstColWidth, rowHeight, rowBgColor);
+    });
+
+    // ---- HEADER CUỘN NGANG ----
     final headerWidgets = List.generate(19, (i) {
       final hour = '${(i + 5).toString().padLeft(2, '0')}:00';
       return _buildCell(hour, dataColWidth * 4, headerHeight, Colors.grey.shade200, isHeader: true);
     });
 
-    // Body của bảng
+    // ---- BODY CUỘN ----
     final bodyRows = List.generate(_storeEmployees.length, (rowIndex) {
       final employee = _storeEmployees[rowIndex];
       final isEven = rowIndex % 2 == 0;
@@ -290,10 +316,6 @@ class _SchedulePageState extends State<SchedulePage> {
 
       return Row(
         children: [
-          // Ô tên nhân viên (cột đầu tiên của body)
-          _buildCell(employee['name'] ?? 'N/A', firstColWidth, rowHeight, rowBgColor),
-
-          // Các ô 15 phút
           ...timeSlots.map((quarterIndex) {
             final hour = (quarterIndex ~/ 4) + 5;
             final minute = (quarterIndex % 4) * 15;
@@ -356,32 +378,58 @@ class _SchedulePageState extends State<SchedulePage> {
           top: BorderSide(color: Colors.black, width: borderWidth),
         ),
       ),
-      child: Column(
+      child: Row(
         children: [
-          // --- HEADER ROW (Horizontally scrollable) ---
-          SingleChildScrollView(
-            controller: _horizontalHeaderController,
-            scrollDirection: Axis.horizontal,
-            physics: const ClampingScrollPhysics(), // Prevent vertical scroll bounce
-            child: Row(
+          // --- CỘT CỐ ĐỊNH BÊN TRÁI ---
+          SizedBox(
+            width: firstColWidth,
+            child: Column(
               children: [
+                // Ô CỐ ĐỊNH TRÊN CÙNG BÊN TRÁI
                 _buildCell('Nhân viên', firstColWidth, headerHeight, Colors.grey.shade200, isHeader: true),
-                ...headerWidgets
+                // DANH SÁCH NHÂN VIÊN CUỘN DỌC
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _verticalFirstColumnController,
+                    physics: const ClampingScrollPhysics(),
+                    child: Column(
+                      children: employeeNameCells,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
-          // --- BODY (Vertically and Horizontally scrollable) ---
+
+          // --- KHU VỰC CUỘN (HEADER NGANG + BODY) ---
           Expanded(
-            child: SingleChildScrollView(
-              controller: _verticalBodyController,
-              child: SingleChildScrollView(
-                controller: _horizontalBodyController,
-                scrollDirection: Axis.horizontal,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: bodyRows,
+            child: Column(
+              children: [
+                // HEADER CUỘN NGANG
+                SingleChildScrollView(
+                  controller: _horizontalHeaderController,
+                  scrollDirection: Axis.horizontal,
+                  physics: const ClampingScrollPhysics(),
+                  child: Row(
+                    children: headerWidgets,
+                  ),
                 ),
-              ),
+
+                // BODY CUỘN DỌC VÀ NGANG
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _verticalBodyController,
+                    child: SingleChildScrollView(
+                      controller: _horizontalBodyController,
+                      scrollDirection: Axis.horizontal,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: bodyRows,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

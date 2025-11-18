@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_demo_dws/chat_fab.dart'; // Import the new file
+import 'package:flutter_demo_dws/chat_fab.dart'; // This file now contains DevFab
 import 'firebase_options.dart';
 
 void main() async {
@@ -22,12 +22,11 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const SchedulePage(), // Changed this from MyHomePage
+      home: const SchedulePage(),
     );
   }
 }
 
-// New page widget
 class SchedulePage extends StatefulWidget {
   const SchedulePage({super.key});
 
@@ -36,10 +35,9 @@ class SchedulePage extends StatefulWidget {
 }
 
 class _SchedulePageState extends State<SchedulePage> {
-  String? _selectedStore = 'Store A'; // Placeholder
-  final List<String> _stores = ['Store A', 'Store B', 'Store C']; // Placeholder
+  String? _selectedStore = 'Store A';
+  final List<String> _stores = ['Store A', 'Store B', 'Store C'];
 
-  // Helper to build the time columns for the DataTable
   List<DataColumn> _buildTimeColumns() {
     List<DataColumn> columns = [const DataColumn(label: Text('Nhân viên'))];
     for (int i = 5; i <= 23; i++) {
@@ -48,15 +46,12 @@ class _SchedulePageState extends State<SchedulePage> {
     return columns;
   }
 
-  // Helper to build placeholder rows
   List<DataRow> _buildEmployeeRows() {
-    // This would come from your data source
     List<String> employees = ['Nhân viên 1', 'Nhân viên 2', 'Nhân viên 3'];
     return employees.map((employee) {
       List<DataCell> cells = [DataCell(Text(employee))];
-      // Add empty cells for time slots
       for (int i = 5; i <= 23; i++) {
-        cells.add(const DataCell(Text(''))); // Placeholder for shifts
+        cells.add(const DataCell(Text('')));
       }
       return DataRow(cells: cells);
     }).toList();
@@ -65,7 +60,6 @@ class _SchedulePageState extends State<SchedulePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 1. Top Bar
       appBar: AppBar(
         title: const Text('Lịch hàng ngày'),
         actions: [
@@ -77,11 +71,11 @@ class _SchedulePageState extends State<SchedulePage> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: const [
                   Text(
-                    'Lê Gia Tuấn', // Placeholder name
+                    'Lê Gia Tuấn',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    'Quản lý', // Placeholder position
+                    'Quản lý',
                     style: TextStyle(fontSize: 12.0),
                   ),
                 ],
@@ -90,7 +84,6 @@ class _SchedulePageState extends State<SchedulePage> {
           ),
         ],
       ),
-      // 2. Sidebar Menu
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -108,31 +101,26 @@ class _SchedulePageState extends State<SchedulePage> {
               leading: const Icon(Icons.calendar_today),
               title: const Text('Lịch hàng ngày'),
               onTap: () {
-                Navigator.pop(context); // Close the drawer
-                // Already on this page, do nothing
+                Navigator.pop(context);
               },
             ),
             ListTile(
               leading: const Icon(Icons.calendar_month),
               title: const Text('Lịch hàng tháng'),
               onTap: () {
-                Navigator.pop(context); // Close the drawer
-                // Navigate to monthly calendar page (not implemented)
+                Navigator.pop(context);
               },
             ),
           ],
         ),
       ),
-      // 3. Main Content
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
-            // --- Function Bar ---
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Store Selector
                 DropdownButton<String>(
                   value: _selectedStore,
                   items: _stores.map<DropdownMenuItem<String>>((String value) {
@@ -147,24 +135,22 @@ class _SchedulePageState extends State<SchedulePage> {
                     });
                   },
                 ),
-                // Week Navigator
                 Row(
                   children: [
                     IconButton(
                       icon: const Icon(Icons.chevron_left),
-                      onPressed: () { /* Logic for previous week */ },
+                      onPressed: () {},
                     ),
-                    const Text('T2 01/07 - CN 07/07'), // Placeholder date range
+                    const Text('T2 01/07 - CN 07/07'),
                     IconButton(
                       icon: const Icon(Icons.chevron_right),
-                      onPressed: () { /* Logic for next week */ },
+                      onPressed: () {},
                     ),
                   ],
                 ),
               ],
             ),
             const Divider(),
-            // --- Table ---
             Expanded(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -182,8 +168,8 @@ class _SchedulePageState extends State<SchedulePage> {
           ],
         ),
       ),
-      // 4. Add the Floating Action Button
-      floatingActionButton: const ChatFab(),
+      // Changed to use the new DevFab
+      floatingActionButton: const DevFab(),
     );
   }
 }

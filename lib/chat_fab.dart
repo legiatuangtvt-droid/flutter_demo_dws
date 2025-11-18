@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
 
-class ChatFab extends StatelessWidget {
-  const ChatFab({super.key});
+// Renamed to better reflect its purpose
+class DevFab extends StatelessWidget {
+  const DevFab({super.key});
 
   @override
   Widget build(BuildContext context) {
     return FloatingActionButton(
       onPressed: () {
-        // Logic xử lý khi nhấn vào nút
-        // Ví dụ: Mở màn hình chat, hoặc hiển thị thông báo
+        // Logic for developer functions can be added here
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Chức năng chat chưa được triển khai.'),
+            content: Text('Menu chức năng cho nhà phát triển.'),
             duration: Duration(seconds: 2),
           ),
         );
       },
-      backgroundColor: Colors.deepPurple,
-      child: const Icon(Icons.chat_bubble, color: Colors.white),
+      backgroundColor: Colors.orange[800], // Changed color to distinguish it
+      tooltip: 'Developer Menu', // Added a tooltip
+      child: const Icon(Icons.developer_mode, color: Colors.white), // Changed icon
     );
   }
 }

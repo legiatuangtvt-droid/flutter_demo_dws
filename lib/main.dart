@@ -97,12 +97,12 @@ class _SchedulePageState extends State<SchedulePage> {
       final taskGroupsSnapshot = results[3] as QuerySnapshot;
 
       final employees = employeesSnapshot.docs.map((doc) => {'id': doc.id, ...doc.data() as Map<String, dynamic>}).toList();
-      final schedule = (templateDoc.data() as Map<String, dynamic>)?['schedule'] ?? {};
+      final schedule = (templateDoc.data() as Map<String, dynamic>)['schedule'] ?? {};
       final taskGroups = taskGroupsSnapshot.docs.map((doc) => {'id': doc.id, ...doc.data() as Map<String, dynamic>}).toList();
 
       if (mounted) {
         setState(() {
-          _storeName = (storeDoc.data() as Map<String, dynamic>)?['name'] ?? _storeName;
+          _storeName = (storeDoc.data() as Map<String, dynamic>)['name'] ?? _storeName;
           _storeEmployees = employees;
           _scheduleData = schedule;
           _taskGroups = taskGroups;
@@ -142,7 +142,7 @@ class _SchedulePageState extends State<SchedulePage> {
   Color _getColorFromHex(String hexColor) {
     hexColor = hexColor.replaceAll("#", "");
     if (hexColor.length == 6) {
-      hexColor = "FF" + hexColor;
+      hexColor = "FF$hexColor";
     }
     return Color(int.parse(hexColor, radix: 16));
   }

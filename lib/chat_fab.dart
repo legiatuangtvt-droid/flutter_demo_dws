@@ -169,7 +169,7 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Chuyển đổi vai trò người dùng'),
-      content: Container(
+      content: SizedBox(
         height: 180,
         width: double.maxFinite,
         child: _isLoading
@@ -187,7 +187,7 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<String>(
-                    value: _selectedRoleId,
+                    initialValue: _selectedRoleId,
                     isExpanded: true,
                     decoration: const InputDecoration(
                       labelText: 'Chọn vai trò',
@@ -204,7 +204,7 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
                   ),
                   const SizedBox(height: 20),
                   DropdownButtonFormField<String>(
-                    value: _selectedEmployeeId,
+                    initialValue: _selectedEmployeeId,
                     isExpanded: true,
                     decoration: InputDecoration(
                       labelText: 'Chọn nhân viên',

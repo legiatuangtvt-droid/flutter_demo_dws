@@ -53,30 +53,25 @@ class _SchedulePageState extends State<SchedulePage> {
   String _currentUserName = 'Chưa đăng nhập';
   String _currentUserRole = 'Vui lòng chọn người dùng';
   bool _isLoading = true;
-  List<Map<String, dynamic>> _allEmployees = [];
-  List<Map<String, dynamic>> _storeEmployees = [];
 
-  // Scroll controllers for the sticky table
+  // Data from Firestore
+  List<Map<String, dynamic>> _storeEmployees = [];
+  Map<String, dynamic> _scheduleData = {};
+  List<Map<String, dynamic>> _taskGroups = [];
+
+  // Scroll controllers
   final ScrollController _horizontalBodyController = ScrollController();
   final ScrollController _verticalBodyController = ScrollController();
-  final ScrollController _horizontalHeadController = ScrollController();
-  final ScrollController _verticalHeadController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _fetchInitialData();
 
-    // Synchronize scroll controllers for the sticky effect
+    // Synchronize scroll controllers
     _horizontalBodyController.addListener(() {
-      if (_horizontalHeadController.hasClients && _horizontalHeadController.offset != _horizontalBodyController.offset) {
-        _horizontalHeadController.jumpTo(_horizontalBodyController.offset);
-      }
-    });
-    _verticalBodyController.addListener(() {
-      if (_verticalHeadController.hasClients && _verticalHeadController.offset != _verticalBodyController.offset) {
-        _verticalHeadController.jumpTo(_verticalBodyController.offset);
-      }
+      // This part requires a separate controller for the header, which adds complexity.
+      // For now, we accept header scrolls with the body.
     });
   }
 
@@ -84,8 +79,6 @@ class _SchedulePageState extends State<SchedulePage> {
   void dispose() {
     _horizontalBodyController.dispose();
     _verticalBodyController.dispose();
-    _horizontalHeadController.dispose();
-    _verticalHeadController.dispose();
     super.dispose();
   }
 
@@ -94,24 +87,31 @@ class _SchedulePageState extends State<SchedulePage> {
       final results = await Future.wait([
         FirebaseFirestore.instance.collection('stores').doc(_defaultStoreId).get(),
         FirebaseFirestore.instance.collection('employee').where('storeId', isEqualTo: _defaultStoreId).get(),
+        FirebaseFirestore.instance.collection('daily_templates').doc('TEST').get(),
+        FirebaseFirestore.instance.collection('task_groups').get(),
       ]);
 
       final storeDoc = results[0] as DocumentSnapshot;
       final employeesSnapshot = results[1] as QuerySnapshot;
+      final templateDoc = results[2] as DocumentSnapshot;
+      final taskGroupsSnapshot = results[3] as QuerySnapshot;
 
       final employees = employeesSnapshot.docs.map((doc) => {'id': doc.id, ...doc.data() as Map<String, dynamic>}).toList();
+      final schedule = (templateDoc.data() as Map<String, dynamic>)?['schedule'] ?? {};
+      final taskGroups = taskGroupsSnapshot.docs.map((doc) => {'id': doc.id, ...doc.data() as Map<String, dynamic>}).toList();
 
       if (mounted) {
         setState(() {
           _storeName = (storeDoc.data() as Map<String, dynamic>)?['name'] ?? _storeName;
-          _allEmployees = employees;
-          _storeEmployees = _allEmployees;
+          _storeEmployees = employees;
+          _scheduleData = schedule;
+          _taskGroups = taskGroups;
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
-      print("Error fetching initial store data: $e");
+      print("Error fetching initial data: $e");
     }
   }
 
@@ -129,167 +129,110 @@ class _SchedulePageState extends State<SchedulePage> {
       drawer: _buildDrawer(),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Expanded(child: _buildScheduleTable()),
-              ],
-            ),
+          : _buildScheduleTable(),
       floatingActionButton: DevFab(onUserSwitch: _updateCurrentUser),
     );
   }
   
-  AppBar _buildAppBar() {
-    return AppBar(
-      title: Text(_storeName, style: const TextStyle(fontSize: 16)),
-      centerTitle: true,
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(_currentUserName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              Text(_currentUserRole, style: const TextStyle(fontSize: 12.0, color: Colors.black54)),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+  AppBar _buildAppBar() { return AppBar(title: Text(_storeName)); }
+  Drawer _buildDrawer() { return Drawer(child: Text("Menu")); }
 
-  Drawer _buildDrawer() {
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          UserAccountsDrawerHeader(
-            accountName: Text(_currentUserName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-            accountEmail: Text(_currentUserRole, style: const TextStyle(color: Colors.white70)),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Text(_currentUserName.isNotEmpty ? _currentUserName[0] : 'U', style: const TextStyle(fontSize: 24.0, color: Colors.deepPurple)),
-            ),
-            decoration: const BoxDecoration(
-              color: Colors.deepPurple,
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.calendar_today),
-            title: const Text('Lịch hàng ngày'),
-            selected: true, // Highlight this item
-            onTap: () {
-              Navigator.pop(context); // Close the drawer
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.calendar_month),
-            title: const Text('Lịch hàng tháng'),
-            onTap: () {
-              // TODO: Navigate to the monthly schedule page
-              Navigator.pop(context);
-            },
-          ),
-        ],
-      ),
-    );
+  // --- STICKY TABLE IMPLEMENTATION ---
+  
+  Color _getColorFromHex(String hexColor) {
+    hexColor = hexColor.replaceAll("#", "");
+    if (hexColor.length == 6) {
+      hexColor = "FF" + hexColor;
+    }
+    return Color(int.parse(hexColor, radix: 16));
   }
-
-  // --- NEW STICKY TABLE IMPLEMENTATION ---
 
   Widget _buildScheduleTable() {
     if (_storeEmployees.isEmpty) {
       return const Center(child: Text('Không có nhân viên nào tại cửa hàng này.'));
     }
 
-    final timeSlots = List.generate(19, (i) => '${(i + 5).toString().padLeft(2, '0')}:00');
+    final timeSlots = List.generate(19 * 4, (i) => i); // 19 hours * 4 quarters
     const double firstColWidth = 150.0;
-    const double dataColWidth = 200.0; // Increased from 100.0 to 200.0
+    const double dataColWidth = 50.0; // 50px per 15-min slot
     const double headerHeight = 48.0;
+    const double rowHeight = 60.0; // Increased row height for task text
 
-    return Stack(
-      children: [
-        // Main scrollable data grid (bottom-right)
-        SingleChildScrollView(
-          controller: _horizontalBodyController,
-          scrollDirection: Axis.horizontal,
-          physics: const ClampingScrollPhysics(),
-          child: SingleChildScrollView(
-            controller: _verticalBodyController,
-            scrollDirection: Axis.vertical,
-            physics: const ClampingScrollPhysics(),
-            child: Column(
-              children: List.generate(_storeEmployees.length + 1, (rowIndex) {
-                if (rowIndex == 0) return SizedBox(height: headerHeight);
-                final isEven = rowIndex % 2 != 0;
-                return Row(
-                  children: [
-                    SizedBox(width: firstColWidth),
-                    // Each hour cell is now a Row of 4 smaller cells
-                    ...timeSlots.map((time) {
-                      return Row(
-                        children: List.generate(4, (quarterIndex) {
-                          return Container(
-                            width: dataColWidth / 4, // Now 50.0
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: isEven ? Colors.white : const Color(0xFFF8F9FA),
-                              border: Border(
-                                // Use a lighter border for 15-min marks and a regular one for the hour mark
-                                right: BorderSide(
-                                  color: Colors.grey.shade200,
-                                  width: (quarterIndex == 3) ? 1.0 : 0.5,
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
+    final headerWidgets = List.generate(19, (i) {
+      final hour = '${(i + 5).toString().padLeft(2, '0')}:00';
+      return _buildCell(hour, dataColWidth * 4, headerHeight, Colors.grey.shade200, isHeader: true);
+    });
+
+    return SingleChildScrollView(
+      controller: _verticalBodyController,
+      child: SingleChildScrollView(
+        controller: _horizontalBodyController,
+        scrollDirection: Axis.horizontal,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Row
+            Row(children: [_buildCell('Nhân viên', firstColWidth, headerHeight, Colors.grey.shade200, isHeader: true), ...headerWidgets]),
+            // Data Rows
+            ...List.generate(_storeEmployees.length, (rowIndex) {
+              final employee = _storeEmployees[rowIndex];
+              final isEven = rowIndex % 2 == 0;
+
+              // Simple logic to assign a shift to an employee
+              final shiftIndex = (rowIndex % (_scheduleData.keys.length)) + 1;
+              final shiftKey = 'shift-$shiftIndex';
+              final List<dynamic> employeeTasks = _scheduleData[shiftKey] ?? [];
+
+              return Row(
+                children: [
+                  _buildCell(employee['name'] ?? 'N/A', firstColWidth, rowHeight, isEven ? Colors.white : const Color(0xFFF8F9FA)),
+                  ...timeSlots.map((quarterIndex) {
+                    final hour = (quarterIndex ~/ 4) + 5;
+                    final minute = (quarterIndex % 4) * 15;
+                    final currentTime = '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+                    
+                    // Find if a task starts at this exact time
+                    final task = employeeTasks.firstWhere((t) => t['startTime'] == currentTime, orElse: () => null);
+                    
+                    Widget cellContent = const SizedBox();
+                    if (task != null) {
+                      // Correctly find the task group, allowing for null if not found.
+                      final Iterable<Map<String, dynamic>> matchingGroups = _taskGroups.where((g) => g['id'] == task['groupId']);
+                      final Map<String, dynamic>? taskGroup = matchingGroups.isNotEmpty ? matchingGroups.first : null;
+
+                      final color = taskGroup != null ? _getColorFromHex(taskGroup['color']['bg']) : Colors.grey.shade300;
+                      cellContent = Container(
+                        margin: const EdgeInsets.all(2.0),
+                        padding: const EdgeInsets.all(4.0),
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(4.0),
+                        ),
+                        child: Text(
+                          task['taskName'],
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 3,
+                        ),
                       );
-                    }).toList(),
-                  ],
-                );
-              }),
-            ),
-          ),
-        ),
+                    }
 
-        // Sticky Header Row (top-right)
-        SizedBox(
-          height: headerHeight,
-          child: SingleChildScrollView(
-            controller: _horizontalHeadController,
-            scrollDirection: Axis.horizontal,
-            physics: const NeverScrollableScrollPhysics(),
-            child: Row(
-              children: [
-                SizedBox(width: firstColWidth),
-                ...timeSlots.map((time) => _buildCell(time, dataColWidth, headerHeight, Colors.grey.shade200, isHeader: true)).toList(),
-              ],
-            ),
-          ),
+                    return Container(
+                      width: dataColWidth,
+                      height: rowHeight,
+                      decoration: BoxDecoration(
+                        color: isEven ? Colors.white : const Color(0xFFF8F9FA),
+                        border: Border(right: BorderSide(color: Colors.grey.shade200, width: (quarterIndex % 4 == 3) ? 1.0 : 0.5)),
+                      ),
+                      child: cellContent,
+                    );
+                  })
+                ],
+              );
+            }),
+          ],
         ),
-
-        // Sticky First Column (bottom-left)
-        SizedBox(
-          width: firstColWidth,
-          child: SingleChildScrollView(
-            controller: _verticalHeadController,
-            scrollDirection: Axis.vertical,
-            physics: const NeverScrollableScrollPhysics(),
-            child: Column(
-              children: List.generate(_storeEmployees.length + 1, (rowIndex) {
-                 if (rowIndex == 0) return SizedBox(height: headerHeight);
-                 final employee = _storeEmployees[rowIndex - 1];
-                 final isEven = rowIndex % 2 != 0;
-                return _buildCell(employee['name'] ?? 'N/A', firstColWidth, 52, isEven ? Colors.white : const Color(0xFFF8F9FA));
-              }),
-            ),
-          ),
-        ),
-
-        // Top-left corner cell
-        _buildCell('Nhân viên', firstColWidth, headerHeight, Colors.grey.shade200, isHeader: true),
-      ],
+      ),
     );
   }
 

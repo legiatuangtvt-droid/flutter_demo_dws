@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
 import 'package:flutter/foundation.dart';
 
 // Raw JSON string containing the new mock data structure.
@@ -11,47 +12,61 @@ const String mockDataJsonString = '''
         "tailwind_bg": "bg-slate-200", "tailwind_text": "text-slate-800", "tailwind_border": "border-slate-500"
       },
       "tasks": [
-        { "order": "1", "name": "Mở POS", "typeTask": "Fixed", "frequency": "Daily", "frequencyNumber": 1, "reUnit": 10, "manual_number": "POS-001", "manual_link": "", "note": "Tính theo số lượng POS" },
-        { "order": "2", "name": "EOD POS", "typeTask": "Fixed", "frequency": "Daily", "frequencyNumber": 1, "reUnit": 15, "manual_number": "POS-002", "manual_link": "", "note": "Tính theo số lượng POS" },
-        { "order": "3", "name": "Chuẩn bị POS", "typeTask": "Fixed", "frequency": "Daily", "frequencyNumber": 1, "reUnit": 5, "manual_number": "POS-003", "manual_link": "", "note": "Tính theo số lượng POS" },
-        { "order": "4", "name": "Đổi tiền lẻ", "typeTask": "CTM", "frequency": "Daily", "frequencyNumber": 2, "reUnit": 5, "manual_number": "POS-004", "manual_link": "", "note": "Tính theo số lượng POS" },
-        { "order": "5", "name": "Thế cơm POS Staff", "typeTask": "CTM", "frequency": "Daily", "frequencyNumber": 1, "reUnit": 30, "manual_number": "POS-005", "manual_link": "", "note": "Tính theo số lượng POS" },
-        { "order": "6", "name": "Hỗ trợ POS", "typeTask": "CTM", "frequency": "Daily", "frequencyNumber": 1, "reUnit": 60, "manual_number": "POS-006", "manual_link": "", "note": "Tính theo số lượng POS" },
-        { "order": "7", "name": "Kết ca", "typeTask": "Fixed", "frequency": "Daily", "frequencyNumber": 1, "reUnit": 15, "manual_number": "POS-007", "manual_link": "", "note": "Tính theo số lượng POS" },
-        { "order": "8", "name": "Giao ca", "typeTask": "Fixed", "frequency": "Daily", "frequencyNumber": 1, "reUnit": 10, "manual_number": "POS-008", "manual_link": "", "note": "Tính theo số lượng POS" },
-        { "order": "9", "name": "POS 1", "typeTask": "CTM", "frequency": "Daily", "frequencyNumber": 1, "reUnit": 1, "manual_number": "POS-009", "manual_link": "", "note": "Tính theo số lượng khách hàng" },
-        { "order": "10", "name": "POS 2", "typeTask": "CTM", "frequency": "Daily", "frequencyNumber": 1, "reUnit": 1, "manual_number": "POS-010", "manual_link": "", "note": "Tính theo số lượng khách hàng" },
-        { "order": "11", "name": "POS 3", "typeTask": "CTM", "frequency": "Daily", "frequencyNumber": 1, "reUnit": 1, "manual_number": "POS-011", "manual_link": "", "note": "Tính theo số lượng khách hàng" },
-        { "order": "12", "name": "Thế cơm Leader", "typeTask": "Fixed", "frequency": "Daily", "frequencyNumber": 1, "reUnit": 30, "manual_number": "POS-012", "manual_link": "", "note": "Tính theo số lượng POS" }
+        { "order": "1", "name": "Mở POS", "typeTask": "Fixed", "frequency": "Daily", "frequencyNumber": 1, "reUnit": 10, "manual_number": "POS-001", "manual_link": "", "note": "Tính theo số lượng POS" }
       ]}
   ],
   "roles": [
     { "id": "STAFF", "name": "Staff", "level": 1 }
+  ],
+  "employee": [  
+    { "id": "AMPM_NVT_LEAD_01", "name": "Trần Minh Dũng", "roleId": "STORE_LEADER_G3", "storeId": "AMPM_NVT", "phone": "0911000001", "status": "ACTIVE" }
+  ],
+  "stores": [
+    { "id": "AMPM_NVT", "name": "AEON MaxValu Nguyễn Văn Trỗi", "address": "Quận Phú Nhuận, TP.HCM", "status": "INACTIVE", "areaId": "HCM_CENTRAL" }
   ]
 }
 ''';
 
 
-/// A function to simulate initializing data.
-///
-/// In a real app, you might upload this to Firestore or load it into a state management solution.
-/// For now, we'll just parse the JSON and print to the console to confirm it's being called.
-void initializeMockData() {
-  // Using debugPrint to ensure it shows up in the Flutter console.
-  debugPrint('--- Initializing Mock Data from JSON ---');
+/// Parses the local JSON and uploads it to corresponding collections in Firestore.
+/// Each top-level key in the JSON is treated as a collection name.
+void initializeMockData() async { // Function is now async
+  debugPrint('--- Starting to upload mock data to Firestore ---');
+  final firestore = FirebaseFirestore.instance;
   
   try {
-    final Map<String, dynamic> data = jsonDecode(mockDataJsonString);
-    final List taskGroups = data['task_groups'] ?? [];
-    final List roles = data['roles'] ?? [];
+    final Map<String, dynamic> allData = jsonDecode(mockDataJsonString);
 
-    debugPrint('Successfully parsed JSON.');
-    debugPrint('Found ${taskGroups.length} task groups.');
-    debugPrint('Found ${roles.length} roles.');
+    // Use a batch for atomic and efficient writes
+    final WriteBatch batch = firestore.batch();
+
+    int totalDocs = 0;
+
+    // Iterate over each key in the JSON, which will be our collection name
+    for (final entry in allData.entries) {
+      final collectionName = entry.key;
+      final List<dynamic> items = entry.value;
+
+      debugPrint('Preparing to write ${items.length} documents to collection \'$collectionName\'...');
+
+      for (final item in items) {
+        // Ensure the item is a map and has an 'id' to use as the document ID
+        if (item is Map<String, dynamic> && item.containsKey('id')) {
+          final String docId = item['id'];
+          final DocumentReference docRef = firestore.collection(collectionName).doc(docId);
+          batch.set(docRef, item); // Add set operation to the batch
+          totalDocs++;
+        } else {
+          debugPrint('[WARNING] Skipping item in $collectionName because it has no ID: $item');
+        }
+      }
+    }
+
+    // Commit the batch to execute all writes at once
+    await batch.commit();
+    debugPrint('--- Successfully uploaded $totalDocs documents to Firestore! ---');
 
   } catch (e) {
-    debugPrint('Error parsing mock data JSON: $e');
+    debugPrint('Error uploading mock data to Firestore: $e');
   }
-
-  debugPrint('--- Mock Data Initialization Finished ---');
 }

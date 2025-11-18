@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 // Raw JSON string containing the new mock data structure.
@@ -16,7 +16,14 @@ const String mockDataJsonString = '''
       ]}
   ],
   "roles": [
-    { "id": "STAFF", "name": "Staff", "level": 1 }
+    { "id": "STAFF", "name": "Staff", "level": 1 },
+    { "id": "STORE_LEADER_G2", "name": "Store Leader G2 (Phó cửa hàng)", "level": 10 },
+    { "id": "STORE_LEADER_G3", "name": "Store Leader G3 (Trưởng cửa hàng)", "level": 11 },
+    { "id": "STORE_INCHARGE", "name": "Store In-charge (SI)", "level": 12 },
+    { "id": "AREA_MANAGER", "name": "Area Manager", "level": 20 },
+    { "id": "REGIONAL_MANAGER", "name": "Regional Manager", "level": 30 },
+    { "id": "HQ_STAFF", "name": "HQ Staff", "level": 50 },
+    { "id": "ADMIN", "name": "Admin System", "level": 99 }
   ],
   "employee": [  
     { "id": "AMPM_NVT_LEAD_01", "name": "Trần Minh Dũng", "roleId": "STORE_LEADER_G3", "storeId": "AMPM_NVT", "phone": "0911000001", "status": "ACTIVE" }
@@ -28,42 +35,53 @@ const String mockDataJsonString = '''
 ''';
 
 
-/// Parses the local JSON and uploads it to Firestore.
+/// Deletes all documents in the specified collections and then uploads the new mock data.
 /// Returns a string message indicating the result.
-Future<String> initializeMockData() async { // Returns a Future<String>
-  debugPrint('--- Starting to upload mock data to Firestore ---');
+Future<String> initializeMockData() async {
+  debugPrint('--- Starting to clear and upload mock data to Firestore ---');
   final firestore = FirebaseFirestore.instance;
   
   try {
     final Map<String, dynamic> allData = jsonDecode(mockDataJsonString);
     final WriteBatch batch = firestore.batch();
-    int totalDocs = 0;
+    int totalDocsWritten = 0;
+    int totalDocsDeleted = 0;
 
     for (final entry in allData.entries) {
       final collectionName = entry.key;
       final List<dynamic> items = entry.value;
 
-      debugPrint('Preparing to write ${items.length} documents to collection \'$collectionName\'...');
+      // --- DELETION PART ---
+      debugPrint('Querying existing documents in \'$collectionName\' for deletion...');
+      final QuerySnapshot snapshot = await firestore.collection(collectionName).get();
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+        totalDocsDeleted++;
+      }
+      debugPrint('Found and queued ${snapshot.docs.length} documents for deletion in \'$collectionName\'.');
 
+      // --- WRITING PART ---
       for (final item in items) {
         if (item is Map<String, dynamic> && item.containsKey('id')) {
           final String docId = item['id'];
           final DocumentReference docRef = firestore.collection(collectionName).doc(docId);
           batch.set(docRef, item);
-          totalDocs++;
+          totalDocsWritten++;
         } else {
           debugPrint('[WARNING] Skipping item in $collectionName because it has no ID: $item');
         }
       }
     }
 
+    // Commit the batch to execute all deletes and writes at once
     await batch.commit();
-    final successMessage = 'Tải lên thành công $totalDocs tài liệu lên Firestore!';
+    
+    final successMessage = 'Đồng bộ hóa thành công: Đã xóa $totalDocsDeleted và tải lên $totalDocsWritten tài liệu!';
     debugPrint(successMessage);
     return successMessage; // Return success message
 
   } catch (e) {
-    final errorMessage = 'Lỗi khi tải dữ liệu lên: $e';
+    final errorMessage = 'Lỗi khi đồng bộ hóa dữ liệu: $e';
     debugPrint(errorMessage);
     return errorMessage; // Return error message
   }

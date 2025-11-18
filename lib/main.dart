@@ -68,7 +68,6 @@ class _SchedulePageState extends State<SchedulePage> {
     super.initState();
     _fetchInitialData();
 
-    // --- PHẦN CHỈNH SỬA ---
     // Synchronize horizontal scroll from body to header
     _horizontalBodyController.addListener(() {
       if (_horizontalHeaderController.hasClients &&
@@ -84,7 +83,6 @@ class _SchedulePageState extends State<SchedulePage> {
         _verticalFirstColumnController.jumpTo(_verticalBodyController.offset);
       }
     });
-    // --- KẾT THÚC CHỈNH SỬA ---
   }
 
   @override
@@ -185,6 +183,29 @@ class _SchedulePageState extends State<SchedulePage> {
 
   AppBar _buildAppBar() {
     return AppBar(
+      // --- PHẦN CHỈNH SỬA ---
+      leading: Builder(
+        builder: (BuildContext context) {
+          return IconButton(
+            padding: EdgeInsets.zero, // Xóa padding mặc định của IconButton
+            icon: Container(
+              width: 40, // Đặt chiều rộng để tạo hình vuông
+              height: 40, // Đặt chiều cao để tạo hình vuông
+              decoration: BoxDecoration(
+                color: Colors.deepPurple.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              child: const Icon(
+                Icons.menu,
+                color: Colors.deepPurple,
+              ), // Icon sẽ được tự động căn giữa
+            ),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+            tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
+          );
+        },
+      ),
+      // --- KẾT THÚC CHỈNH SỬA ---
       title: Text(_storeName, style: const TextStyle(fontSize: 16)),
       centerTitle: true,
       actions: [

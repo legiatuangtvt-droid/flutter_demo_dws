@@ -204,7 +204,7 @@ class _SchedulePageState extends State<SchedulePage> {
 
     final timeSlots = List.generate(19, (i) => '${(i + 5).toString().padLeft(2, '0')}:00');
     const double firstColWidth = 150.0;
-    const double dataColWidth = 100.0;
+    const double dataColWidth = 200.0; // Increased from 100.0 to 200.0
     const double headerHeight = 48.0;
 
     return Stack(
@@ -225,12 +225,12 @@ class _SchedulePageState extends State<SchedulePage> {
                 return Row(
                   children: [
                     SizedBox(width: firstColWidth),
-                    // UPDATED: Each hour cell is now a Row of 4 smaller cells
+                    // Each hour cell is now a Row of 4 smaller cells
                     ...timeSlots.map((time) {
                       return Row(
                         children: List.generate(4, (quarterIndex) {
                           return Container(
-                            width: dataColWidth / 4, // 25.0
+                            width: dataColWidth / 4, // Now 50.0
                             height: 52,
                             decoration: BoxDecoration(
                               color: isEven ? Colors.white : const Color(0xFFF8F9FA),

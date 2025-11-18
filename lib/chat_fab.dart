@@ -110,30 +110,30 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
     _fetchData();
   }
 
-  // --- UPDATED FUNCTION ---
   Future<void> _fetchData() async {
     try {
       final firestore = FirebaseFirestore.instance;
-
-      // Run both Firestore queries in parallel
       final results = await Future.wait([
-        firestore.collection('roles').get(),
+        firestore.collection('roles').orderBy('name').get(), // Sort roles by name
         firestore.collection('employee').get(),
       ]);
 
       final rolesSnapshot = results[0] as QuerySnapshot;
       final employeesSnapshot = results[1] as QuerySnapshot;
 
-      setState(() {
-        _roles = rolesSnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
-        _employees = employeesSnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _roles = rolesSnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+          _employees = employeesSnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      // Handle error, maybe show a toast
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
       print("Error fetching data in parallel: $e");
     }
   }
@@ -142,8 +142,10 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
     if (newRoleId == null) return;
     setState(() {
       _selectedRoleId = newRoleId;
-      _selectedEmployeeId = null; // Reset employee selection
+      _selectedEmployeeId = null;
       _filteredEmployees = _employees.where((emp) => emp['roleId'] == newRoleId).toList();
+      // Sort employees by name
+      _filteredEmployees.sort((a, b) => (a['name'] ?? '').compareTo(b['name'] ?? ''));
     });
   }
 
@@ -151,17 +153,32 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Chuyển đổi vai trò người dùng'),
-      content: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SizedBox(
-              width: double.maxFinite,
-              child: Column(
+      // Use a container with a fixed height to prevent resizing
+      content: Container(
+        height: 180, 
+        width: double.maxFinite,
+        child: _isLoading
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Đang tải dữ liệu...'),
+                  ],
+                ),
+              )
+            : Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<String>(
                     value: _selectedRoleId,
                     isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Chọn vai trò'),
+                    decoration: const InputDecoration(
+                      labelText: 'Chọn vai trò',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.security_outlined),
+                    ),
                     items: _roles.map((role) {
                       return DropdownMenuItem<String>(
                         value: role['id'],
@@ -176,39 +193,47 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
                     isExpanded: true,
                     decoration: InputDecoration(
                       labelText: 'Chọn nhân viên',
-                      enabled: _selectedRoleId != null, // Disable if no role is selected
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.person_outline),
+                      filled: _selectedRoleId == null,
+                      fillColor: _selectedRoleId == null ? Colors.grey.shade200 : null,
                     ),
+                    onChanged: _selectedRoleId == null ? null : (String? newValue) {
+                      setState(() {
+                        _selectedEmployeeId = newValue;
+                      });
+                    },
                     items: _filteredEmployees.map((employee) {
                       return DropdownMenuItem<String>(
                         value: employee['id'],
                         child: Text(employee['name'] ?? 'N/A'),
                       );
                     }).toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        _selectedEmployeeId = newValue;
-                      });
-                    },
+                    hint: _selectedRoleId != null && _filteredEmployees.isEmpty
+                        ? const Padding(
+                            padding: EdgeInsets.only(left: 8.0),
+                            child: Text('Không có nhân viên'),
+                          )
+                        : null,
                   ),
                 ],
               ),
-            ),
+      ),
       actions: <Widget>[
         TextButton(
           child: const Text('Hủy'),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
+          onPressed: () => Navigator.of(context).pop(),
         ),
-        FilledButton(
-          child: const Text('Áp dụng'),
+        FilledButton.icon(
+          icon: const Icon(Icons.check_circle_outline),
+          label: const Text('Áp dụng'),
           onPressed: (_selectedEmployeeId != null)
               ? () {
                   // TODO: Implement the actual user switching logic here
                   print('Switching to user: $_selectedEmployeeId with role: $_selectedRoleId');
                   Navigator.of(context).pop();
                 }
-              : null, // Disable button if no employee is selected
+              : null, 
         ),
       ],
     );

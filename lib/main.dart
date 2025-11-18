@@ -57,13 +57,11 @@ class _SchedulePageState extends State<SchedulePage> {
   Map<String, dynamic> _scheduleData = {};
   List<Map<String, dynamic>> _taskGroups = [];
 
-  // --- PHẦN CHỈNH SỬA ---
   // Scroll controllers for sticky header and column
   final ScrollController _horizontalBodyController = ScrollController();
   final ScrollController _verticalBodyController = ScrollController();
   final ScrollController _horizontalHeaderController = ScrollController();
   final ScrollController _verticalFirstColumnController = ScrollController();
-  // --- KẾT THÚC CHỈNH SỬA ---
 
   @override
   void initState() {
@@ -71,31 +69,15 @@ class _SchedulePageState extends State<SchedulePage> {
     _fetchInitialData();
 
     // --- PHẦN CHỈNH SỬA ---
-    // Synchronize horizontal scroll controllers
-    _horizontalHeaderController.addListener(() {
-      if (_horizontalBodyController.hasClients &&
-          _horizontalBodyController.offset !=
-              _horizontalHeaderController.offset) {
-        _horizontalBodyController.jumpTo(_horizontalHeaderController.offset);
-      }
-    });
-
+    // Synchronize horizontal scroll from body to header
     _horizontalBodyController.addListener(() {
       if (_horizontalHeaderController.hasClients &&
-          _horizontalHeaderController.offset !=
-              _horizontalBodyController.offset) {
+          _horizontalHeaderController.offset != _horizontalBodyController.offset) {
         _horizontalHeaderController.jumpTo(_horizontalBodyController.offset);
       }
     });
 
-    // Synchronize vertical scroll controllers
-    _verticalFirstColumnController.addListener(() {
-      if (_verticalBodyController.hasClients &&
-          _verticalBodyController.offset != _verticalFirstColumnController.offset) {
-        _verticalBodyController.jumpTo(_verticalFirstColumnController.offset);
-      }
-    });
-
+    // Synchronize vertical scroll from body to first column
     _verticalBodyController.addListener(() {
       if (_verticalFirstColumnController.hasClients &&
           _verticalFirstColumnController.offset != _verticalBodyController.offset) {
@@ -107,15 +89,12 @@ class _SchedulePageState extends State<SchedulePage> {
 
   @override
   void dispose() {
-    // --- PHẦN CHỈNH SỬA ---
     _horizontalHeaderController.dispose();
     _verticalFirstColumnController.dispose();
-    // --- KẾT THÚC CHỈNH SỬA ---
     _horizontalBodyController.dispose();
     _verticalBodyController.dispose();
     super.dispose();
   }
-
 
   Future<void> _fetchInitialData() async {
     try {
@@ -268,7 +247,7 @@ class _SchedulePageState extends State<SchedulePage> {
     return Color(int.parse(hexColor, radix: 16));
   }
 
-  // --- STICKY TABLE IMPLEMENTATION (REFACTORED) ---
+  // --- STICKY TABLE IMPLEMENTATION (REFACTORED FOR DIAGONAL SCROLL) ---
   Widget _buildScheduleTable() {
     if (_storeEmployees.isEmpty) {
       return const Center(child: Text('Không có nhân viên nào tại cửa hàng này.'));
@@ -391,7 +370,7 @@ class _SchedulePageState extends State<SchedulePage> {
                 Expanded(
                   child: SingleChildScrollView(
                     controller: _verticalFirstColumnController,
-                    physics: const ClampingScrollPhysics(),
+                    physics: const NeverScrollableScrollPhysics(), // Prevent default scrolling
                     child: Column(
                       children: employeeNameCells,
                     ),
@@ -403,33 +382,52 @@ class _SchedulePageState extends State<SchedulePage> {
 
           // --- KHU VỰC CUỘN (HEADER NGANG + BODY) ---
           Expanded(
-            child: Column(
-              children: [
-                // HEADER CUỘN NGANG
-                SingleChildScrollView(
-                  controller: _horizontalHeaderController,
-                  scrollDirection: Axis.horizontal,
-                  physics: const ClampingScrollPhysics(),
-                  child: Row(
-                    children: headerWidgets,
-                  ),
-                ),
+            child: GestureDetector(
+              onPanUpdate: (details) {
+                // Horizontal scroll
+                if (_horizontalBodyController.hasClients) {
+                  final newHorizontalOffset = (_horizontalBodyController.offset - details.delta.dx)
+                      .clamp(0.0, _horizontalBodyController.position.maxScrollExtent);
+                  _horizontalBodyController.jumpTo(newHorizontalOffset);
+                }
 
-                // BODY CUỘN DỌC VÀ NGANG
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: _verticalBodyController,
+                // Vertical scroll
+                if (_verticalBodyController.hasClients) {
+                  final newVerticalOffset = (_verticalBodyController.offset - details.delta.dy)
+                      .clamp(0.0, _verticalBodyController.position.maxScrollExtent);
+                  _verticalBodyController.jumpTo(newVerticalOffset);
+                }
+              },
+              child: Column(
+                children: [
+                  // HEADER CUỘN NGANG
+                  SingleChildScrollView(
+                    controller: _horizontalHeaderController,
+                    scrollDirection: Axis.horizontal,
+                    physics: const NeverScrollableScrollPhysics(), // Prevent default scrolling
+                    child: Row(
+                      children: headerWidgets,
+                    ),
+                  ),
+
+                  // BODY CUỘN DỌC VÀ NGANG
+                  Expanded(
                     child: SingleChildScrollView(
-                      controller: _horizontalBodyController,
-                      scrollDirection: Axis.horizontal,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: bodyRows,
+                      controller: _verticalBodyController,
+                      physics: const NeverScrollableScrollPhysics(), // Prevent default scrolling
+                      child: SingleChildScrollView(
+                        controller: _horizontalBodyController,
+                        scrollDirection: Axis.horizontal,
+                        physics: const NeverScrollableScrollPhysics(), // Prevent default scrolling
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: bodyRows,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

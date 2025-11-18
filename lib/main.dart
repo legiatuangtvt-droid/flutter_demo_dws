@@ -178,10 +178,21 @@ class _SchedulePageState extends State<SchedulePage> {
               final employee = _storeEmployees[rowIndex];
               final isEven = rowIndex % 2 == 0;
 
-              // Simple logic to assign a shift to an employee
-              final shiftIndex = (rowIndex % (_scheduleData.keys.length)) + 1;
-              final shiftKey = 'shift-$shiftIndex';
-              final List<dynamic> employeeTasks = _scheduleData[shiftKey] ?? [];
+              List<dynamic> employeeTasks = []; // Default to empty
+
+              // Sort shift keys to ensure consistent order, e.g., shift-1, shift-2, ..., shift-10
+              final sortedShiftKeys = _scheduleData.keys.toList()
+                ..sort((a, b) {
+                  final numA = int.tryParse(a.split('-').last) ?? 0;
+                  final numB = int.tryParse(b.split('-').last) ?? 0;
+                  return numA.compareTo(numB);
+                });
+
+              // Only assign tasks if there are enough shifts in the template
+              if (rowIndex < sortedShiftKeys.length) {
+                final shiftKey = sortedShiftKeys[rowIndex];
+                employeeTasks = _scheduleData[shiftKey] ?? [];
+              }
 
               return Row(
                 children: [
@@ -196,7 +207,6 @@ class _SchedulePageState extends State<SchedulePage> {
                     
                     Widget cellContent = const SizedBox();
                     if (task != null) {
-                      // Correctly find the task group, allowing for null if not found.
                       final Iterable<Map<String, dynamic>> matchingGroups = _taskGroups.where((g) => g['id'] == task['groupId']);
                       final Map<String, dynamic>? taskGroup = matchingGroups.isNotEmpty ? matchingGroups.first : null;
 

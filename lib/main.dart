@@ -131,7 +131,6 @@ class _SchedulePageState extends State<SchedulePage> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                // Control Panel is removed.
                 Expanded(child: _buildScheduleTable()),
               ],
             ),
@@ -226,14 +225,25 @@ class _SchedulePageState extends State<SchedulePage> {
                 return Row(
                   children: [
                     SizedBox(width: firstColWidth),
+                    // UPDATED: Each hour cell is now a Row of 4 smaller cells
                     ...timeSlots.map((time) {
-                      return Container(
-                        width: dataColWidth,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: isEven ? Colors.white : const Color(0xFFF8F9FA),
-                          border: Border(right: BorderSide(color: Colors.grey.shade200)),
-                        ),
+                      return Row(
+                        children: List.generate(4, (quarterIndex) {
+                          return Container(
+                            width: dataColWidth / 4, // 25.0
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: isEven ? Colors.white : const Color(0xFFF8F9FA),
+                              border: Border(
+                                // Use a lighter border for 15-min marks and a regular one for the hour mark
+                                right: BorderSide(
+                                  color: Colors.grey.shade200,
+                                  width: (quarterIndex == 3) ? 1.0 : 0.5,
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
                       );
                     }).toList(),
                   ],

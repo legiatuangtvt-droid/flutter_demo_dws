@@ -208,11 +208,14 @@ class _SchedulePageState extends State<SchedulePage> {
                           color: color,
                           borderRadius: BorderRadius.circular(4.0),
                         ),
-                        child: Text(
-                          task['taskName'],
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 3,
+                        child: Center( // Center the Text widget
+                          child: Text(
+                            task['taskName'],
+                            textAlign: TextAlign.center, // And align the text itself
+                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 3,
+                          ),
                         ),
                       );
                     }

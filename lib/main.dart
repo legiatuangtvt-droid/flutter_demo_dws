@@ -303,29 +303,39 @@ class _SchedulePageState extends State<SchedulePage> {
                     final task = employeeTasks.firstWhere((t) => t['startTime'] == currentTime, orElse: () => null);
                     
                     Widget cellContent = const SizedBox();
+
                     if (task != null) {
                       final Iterable<Map<String, dynamic>> matchingGroups = _taskGroups.where((g) => g['id'] == task['groupId']);
                       final Map<String, dynamic>? taskGroup = matchingGroups.isNotEmpty ? matchingGroups.first : null;
 
-                      final color = taskGroup != null ? _getColorFromHex(taskGroup['color']['bg']) : Colors.grey.shade300;
+                      final bgColor = taskGroup != null ? _getColorFromHex(taskGroup['color']['bg']) : Colors.grey.shade300;
+
+                      // --- PHẦN CHỈNH SỬA ---
+                      // Tạo màu viền đậm hơn từ màu nền
+                      final borderColor = HSLColor.fromColor(bgColor).withLightness((HSLColor.fromColor(bgColor).lightness - 0.2).clamp(0.0, 1.0)).toColor();
+
                       cellContent = Container(
                         margin: const EdgeInsets.all(2.0),
                         padding: const EdgeInsets.all(4.0),
                         decoration: BoxDecoration(
-                          color: color,
+                          color: bgColor,
                           borderRadius: BorderRadius.circular(4.0),
+                          // Thêm đường viền đậm hơn
+                          border: Border.all(color: borderColor, width: 1.5),
                         ),
-                        child: Center( // Center the Text widget
+                        child: Center(
                           child: Text(
                             task['taskName'],
-                            textAlign: TextAlign.center, // And align the text itself
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.black87), // Cân nhắc màu chữ để dễ đọc hơn
                             overflow: TextOverflow.ellipsis,
                             maxLines: 3,
                           ),
                         ),
                       );
+                      // --- KẾT THÚC CHỈNH SỬA ---
                     }
+
 
                     return Container(
                       width: dataColWidth,

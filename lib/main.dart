@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_demo_dws/chat_fab.dart'; // Import the new file
 import 'firebase_options.dart';
 
 void main() async {
@@ -181,6 +182,8 @@ class _SchedulePageState extends State<SchedulePage> {
           ],
         ),
       ),
+      // 4. Add the Floating Action Button
+      floatingActionButton: const ChatFab(),
     );
   }
 }

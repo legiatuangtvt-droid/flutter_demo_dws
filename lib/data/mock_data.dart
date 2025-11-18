@@ -28,21 +28,17 @@ const String mockDataJsonString = '''
 ''';
 
 
-/// Parses the local JSON and uploads it to corresponding collections in Firestore.
-/// Each top-level key in the JSON is treated as a collection name.
-void initializeMockData() async { // Function is now async
+/// Parses the local JSON and uploads it to Firestore.
+/// Returns a string message indicating the result.
+Future<String> initializeMockData() async { // Returns a Future<String>
   debugPrint('--- Starting to upload mock data to Firestore ---');
   final firestore = FirebaseFirestore.instance;
   
   try {
     final Map<String, dynamic> allData = jsonDecode(mockDataJsonString);
-
-    // Use a batch for atomic and efficient writes
     final WriteBatch batch = firestore.batch();
-
     int totalDocs = 0;
 
-    // Iterate over each key in the JSON, which will be our collection name
     for (final entry in allData.entries) {
       final collectionName = entry.key;
       final List<dynamic> items = entry.value;
@@ -50,11 +46,10 @@ void initializeMockData() async { // Function is now async
       debugPrint('Preparing to write ${items.length} documents to collection \'$collectionName\'...');
 
       for (final item in items) {
-        // Ensure the item is a map and has an 'id' to use as the document ID
         if (item is Map<String, dynamic> && item.containsKey('id')) {
           final String docId = item['id'];
           final DocumentReference docRef = firestore.collection(collectionName).doc(docId);
-          batch.set(docRef, item); // Add set operation to the batch
+          batch.set(docRef, item);
           totalDocs++;
         } else {
           debugPrint('[WARNING] Skipping item in $collectionName because it has no ID: $item');
@@ -62,11 +57,14 @@ void initializeMockData() async { // Function is now async
       }
     }
 
-    // Commit the batch to execute all writes at once
     await batch.commit();
-    debugPrint('--- Successfully uploaded $totalDocs documents to Firestore! ---');
+    final successMessage = 'Tải lên thành công $totalDocs tài liệu lên Firestore!';
+    debugPrint(successMessage);
+    return successMessage; // Return success message
 
   } catch (e) {
-    debugPrint('Error uploading mock data to Firestore: $e');
+    final errorMessage = 'Lỗi khi tải dữ liệu lên: $e';
+    debugPrint(errorMessage);
+    return errorMessage; // Return error message
   }
 }

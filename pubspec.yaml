@@ -12,7 +12,8 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   firebase_core: ^2.32.0
-  cloud_firestore: ^4.17.5 # Added Firestore dependency
+  cloud_firestore: ^4.17.5
+  fluttertoast: ^8.2.6 # Added toast library
 
 dev_dependencies:
   flutter_test:

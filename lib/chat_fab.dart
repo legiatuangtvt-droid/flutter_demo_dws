@@ -1,49 +1,74 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_demo_dws/data/mock_data.dart'; // Import the new data file
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_demo_dws/data/mock_data.dart';
 
-// Renamed to better reflect its purpose
+// Enum to define the type of toast for color coding
+enum ToastType { info, success, error }
+
 class DevFab extends StatelessWidget {
   const DevFab({super.key});
 
-  // Handles the logic when a menu item is selected
-  void _handleMenuSelection(String value, BuildContext context) {
-    String message;
-    switch (value) {
-      case 'init_mock_data':
-        // Call the function from the new data file
-        initializeMockData();
-        message = 'Đã gọi hàm khởi tạo dữ liệu. Kiểm tra console để xem kết quả.';
+  // Helper function to show a color-coded toast message
+  void _showToast(String message, {ToastType type = ToastType.info}) {
+    Color backgroundColor;
+    switch (type) {
+      case ToastType.success:
+        backgroundColor = Colors.green.shade700;
         break;
-      case 'switch_user_role':
-        message = 'Chức năng "Chuyển đổi vai trò người dùng" đang được xử lý...';
-        // TODO: Add logic to switch user role
+      case ToastType.error:
+        backgroundColor = Colors.red.shade700;
         break;
+      case ToastType.info:
       default:
-        return; // Do nothing if the value is not recognized
+        backgroundColor = Colors.blue.shade700;
+        break;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 2),
-      ),
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.TOP,
+      timeInSecForIosWeb: 2,
+      backgroundColor: backgroundColor,
+      textColor: Colors.white,
+      fontSize: 16.0,
     );
+  }
+
+  // Handles the logic when a menu item is selected
+  void _handleMenuSelection(String value, BuildContext context) async {
+    switch (value) {
+      case 'init_mock_data':
+        _showToast('Đang tải dữ liệu lên...', type: ToastType.info);
+        final String resultMessage = await initializeMockData();
+
+        // Determine toast type based on the result message
+        if (resultMessage.startsWith('Lỗi')) {
+          _showToast(resultMessage, type: ToastType.error);
+        } else {
+          _showToast(resultMessage, type: ToastType.success);
+        }
+        break;
+
+      case 'switch_user_role':
+        _showToast('Chức năng "Chuyển đổi vai trò người dùng" đang được xử lý...', type: ToastType.info);
+        // TODO: Add logic to switch user role
+        break;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Wrap the FAB with a PopupMenuButton to show a menu on tap.
     return PopupMenuButton<String>(
-      tooltip: 'Developer Menu', // The tooltip is now on the PopupMenuButton
+      tooltip: 'Developer Menu',
       onSelected: (value) => _handleMenuSelection(value, context),
-      // Improved item builder with Icons
       itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
         PopupMenuItem<String>(
           value: 'init_mock_data',
           child: Row(
             children: const [
-              Icon(Icons.post_add, color: Colors.blue), // Added Icon
-              SizedBox(width: 12), // Added spacing
+              Icon(Icons.post_add, color: Colors.blue),
+              SizedBox(width: 12),
               Text('Khởi tạo dữ liệu mô phỏng'),
             ],
           ),
@@ -52,16 +77,15 @@ class DevFab extends StatelessWidget {
           value: 'switch_user_role',
           child: Row(
             children: const [
-              Icon(Icons.switch_account, color: Colors.green), // Added Icon
-              SizedBox(width: 12), // Added spacing
+              Icon(Icons.switch_account, color: Colors.green),
+              SizedBox(width: 12),
               Text('Chuyển đổi vai trò người dùng'),
             ],
           ),
         ),
       ],
-      // The child is the FAB itself.
       child: FloatingActionButton(
-        onPressed: null, // The parent PopupMenuButton handles the press.
+        onPressed: null,
         backgroundColor: Colors.orange[800],
         child: const Icon(Icons.developer_mode, color: Colors.white),
       ),

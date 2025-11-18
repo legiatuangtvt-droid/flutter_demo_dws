@@ -244,23 +244,25 @@ class _SchedulePageState extends State<SchedulePage> {
     return Color(int.parse(hexColor, radix: 16));
   }
 
-  Widget _buildScheduleTable() {
-    if (_storeEmployees.isEmpty) {
-      return const Center(child: Text('Không có nhân viên nào tại cửa hàng này.'));
-    }
+  Widget _buildScheduleTable() {if (_storeEmployees.isEmpty) {
+    return const Center(child: Text('Không có nhân viên nào tại cửa hàng này.'));
+  }
 
-    final timeSlots = List.generate(19 * 4, (i) => i); // 19 hours * 4 quarters
-    const double firstColWidth = 150.0;
-    const double dataColWidth = 50.0; // 50px per 15-min slot
-    const double headerHeight = 48.0;
-    const double rowHeight = 60.0; // Increased row height for task text
+  final timeSlots = List.generate(19 * 4, (i) => i); // 19 hours * 4 quarters
+  const double firstColWidth = 150.0;
+  const double dataColWidth = 50.0; // 50px per 15-min slot
+  const double headerHeight = 48.0;
+  const double rowHeight = 60.0; // Increased row height for task text
 
-    final headerWidgets = List.generate(19, (i) {
-      final hour = '${(i + 5).toString().padLeft(2, '0')}:00';
-      return _buildCell(hour, dataColWidth * 4, headerHeight, Colors.grey.shade200, isHeader: true);
-    });
+  // Header cho các cột giờ
+  final headerWidgets = List.generate(19, (i) {
+    final hour = '${(i + 5).toString().padLeft(2, '0')}:00';
+    return _buildCell(hour, dataColWidth * 4, headerHeight, Colors.grey.shade200, isHeader: true);
+  });
 
-    return SingleChildScrollView(
+  return Container(
+    margin: const EdgeInsets.all(8.0), // Giữ lại margin để bảng không dính sát vào cạnh màn hình
+    child: SingleChildScrollView(
       controller: _verticalBodyController,
       child: SingleChildScrollView(
         controller: _horizontalBodyController,
@@ -268,16 +270,20 @@ class _SchedulePageState extends State<SchedulePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Row
-            Row(children: [_buildCell('Nhân viên', firstColWidth, headerHeight, Colors.grey.shade200, isHeader: true), ...headerWidgets]),
-            // Data Rows
+            // Hàng Header
+            Row(children: [
+              _buildCell('Nhân viên', firstColWidth, headerHeight, Colors.grey.shade200, isHeader: true),
+              ...headerWidgets
+            ]),
+
+            // Các hàng dữ liệu
             ...List.generate(_storeEmployees.length, (rowIndex) {
               final employee = _storeEmployees[rowIndex];
               final isEven = rowIndex % 2 == 0;
+              final rowBgColor = isEven ? Colors.white : const Color(0xFFF8F9FA);
 
-              List<dynamic> employeeTasks = []; // Default to empty
+              List<dynamic> employeeTasks = []; // Mặc định là rỗng
 
-              // Sort shift keys to ensure consistent order, e.g., shift-1, shift-2, ..., shift-10
               final sortedShiftKeys = _scheduleData.keys.toList()
                 ..sort((a, b) {
                   final numA = int.tryParse(a.split('-').last) ?? 0;
@@ -285,7 +291,6 @@ class _SchedulePageState extends State<SchedulePage> {
                   return numA.compareTo(numB);
                 });
 
-              // Only assign tasks if there are enough shifts in the template
               if (rowIndex < sortedShiftKeys.length) {
                 final shiftKey = sortedShiftKeys[rowIndex];
                 employeeTasks = _scheduleData[shiftKey] ?? [];
@@ -293,25 +298,23 @@ class _SchedulePageState extends State<SchedulePage> {
 
               return Row(
                 children: [
-                  _buildCell(employee['name'] ?? 'N/A', firstColWidth, rowHeight, isEven ? Colors.white : const Color(0xFFF8F9FA)),
+                  // Ô tên nhân viên
+                  _buildCell(employee['name'] ?? 'N/A', firstColWidth, rowHeight, rowBgColor),
+
+                  // Các ô 15 phút
                   ...timeSlots.map((quarterIndex) {
                     final hour = (quarterIndex ~/ 4) + 5;
                     final minute = (quarterIndex % 4) * 15;
                     final currentTime = '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
-                    
-                    // Find if a task starts at this exact time
+
                     final task = employeeTasks.firstWhere((t) => t['startTime'] == currentTime, orElse: () => null);
-                    
+
                     Widget cellContent = const SizedBox();
 
                     if (task != null) {
                       final Iterable<Map<String, dynamic>> matchingGroups = _taskGroups.where((g) => g['id'] == task['groupId']);
                       final Map<String, dynamic>? taskGroup = matchingGroups.isNotEmpty ? matchingGroups.first : null;
-
                       final bgColor = taskGroup != null ? _getColorFromHex(taskGroup['color']['bg']) : Colors.grey.shade300;
-
-                      // --- PHẦN CHỈNH SỬA ---
-                      // Tạo màu viền đậm hơn từ màu nền
                       final borderColor = HSLColor.fromColor(bgColor).withLightness((HSLColor.fromColor(bgColor).lightness - 0.2).clamp(0.0, 1.0)).toColor();
 
                       cellContent = Container(
@@ -320,32 +323,39 @@ class _SchedulePageState extends State<SchedulePage> {
                         decoration: BoxDecoration(
                           color: bgColor,
                           borderRadius: BorderRadius.circular(4.0),
-                          // Thêm đường viền đậm hơn
                           border: Border.all(color: borderColor, width: 1.5),
                         ),
                         child: Center(
                           child: Text(
                             task['taskName'],
                             textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.black87), // Cân nhắc màu chữ để dễ đọc hơn
+                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.black87),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 3,
                           ),
                         ),
                       );
-                      // --- KẾT THÚC CHỈNH SỬA ---
                     }
 
-
+                    // --- PHẦN CHỈNH SỬA CHÍNH ---
                     return Container(
                       width: dataColWidth,
                       height: rowHeight,
                       decoration: BoxDecoration(
-                        color: isEven ? Colors.white : const Color(0xFFF8F9FA),
-                        border: Border(right: BorderSide(color: Colors.grey.shade200, width: (quarterIndex % 4 == 3) ? 1.0 : 0.5)),
+                        color: rowBgColor,
+                        border: Border(
+                          // Đường viền dọc bên phải
+                          right: BorderSide(
+                            color: (quarterIndex % 4 == 3) ? Colors.black : Colors.grey.shade300,
+                            width: (quarterIndex % 4 == 3) ? 1.5 : 0.5,
+                          ),
+                          // Đường viền ngang bên dưới
+                          bottom: const BorderSide(color: Colors.black, width: 1.5),
+                        ),
                       ),
                       child: cellContent,
                     );
+                    // --- KẾT THÚC CHỈNH SỬA ---
                   })
                 ],
               );
@@ -353,16 +363,21 @@ class _SchedulePageState extends State<SchedulePage> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
+
+// Dán và thay thế hàm _buildCell() hiện tại
   Widget _buildCell(String text, double width, double height, Color color, {bool isHeader = false}) {
+    // --- PHẦN CHỈNH SỬA CHÍNH ---
     return Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
         color: color,
-        border: Border.all(color: Colors.grey.shade300, width: 0.5),
+        // Vẽ viền đen cho tất cả các cạnh
+        border: Border.all(color: Colors.black, width: 1.5),
       ),
       alignment: Alignment.center,
       child: Padding(
@@ -377,6 +392,7 @@ class _SchedulePageState extends State<SchedulePage> {
         ),
       ),
     );
+    // --- KẾT THÚC CHỈNH SỬA ---
   }
 }
 

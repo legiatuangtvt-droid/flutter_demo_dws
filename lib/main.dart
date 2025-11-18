@@ -160,7 +160,40 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   Drawer _buildDrawer() {
-    return Drawer(); // Placeholder for drawer
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          UserAccountsDrawerHeader(
+            accountName: Text(_currentUserName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+            accountEmail: Text(_currentUserRole, style: const TextStyle(color: Colors.white70)),
+            currentAccountPicture: CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Text(_currentUserName.isNotEmpty ? _currentUserName[0] : 'U', style: const TextStyle(fontSize: 24.0, color: Colors.deepPurple)),
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.deepPurple,
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.calendar_today),
+            title: const Text('Lịch hàng ngày'),
+            selected: true, // Highlight this item
+            onTap: () {
+              Navigator.pop(context); // Close the drawer
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.calendar_month),
+            title: const Text('Lịch hàng tháng'),
+            onTap: () {
+              // TODO: Navigate to the monthly schedule page
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   // --- NEW STICKY TABLE IMPLEMENTATION ---

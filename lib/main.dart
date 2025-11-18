@@ -48,25 +48,45 @@ class SchedulePage extends StatefulWidget {
 }
 
 class _SchedulePageState extends State<SchedulePage> {
-  // --- APP CONTEXT ---
-  // Assume this device is locked to a specific store.
-  static const String _defaultStoreId = 'AMPM_DN_NVC'; // AEON MaxValu Ngô Quyền
-  String _storeName = 'AEON MaxValu Ngô Quyền'; // Default display name
-
-  // --- USER CONTEXT ---
-  // Initially, no one is logged in.
+  static const String _defaultStoreId = 'AMPM_DN_NVC';
+  String _storeName = 'AEON MaxValu Ngô Quyền';
   String _currentUserName = 'Chưa đăng nhập';
   String _currentUserRole = 'Vui lòng chọn người dùng';
-
-  // --- DATA FROM FIRESTORE ---
   bool _isLoading = true;
   List<Map<String, dynamic>> _allEmployees = [];
-  List<Map<String, dynamic>> _storeEmployees = []; // Employees for the default store
+  List<Map<String, dynamic>> _storeEmployees = [];
+
+  // Scroll controllers for the sticky table
+  final ScrollController _horizontalBodyController = ScrollController();
+  final ScrollController _verticalBodyController = ScrollController();
+  final ScrollController _horizontalHeadController = ScrollController();
+  final ScrollController _verticalHeadController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _fetchInitialData();
+
+    // Synchronize scroll controllers for the sticky effect
+    _horizontalBodyController.addListener(() {
+      if (_horizontalHeadController.hasClients && _horizontalHeadController.offset != _horizontalBodyController.offset) {
+        _horizontalHeadController.jumpTo(_horizontalBodyController.offset);
+      }
+    });
+    _verticalBodyController.addListener(() {
+      if (_verticalHeadController.hasClients && _verticalHeadController.offset != _verticalBodyController.offset) {
+        _verticalHeadController.jumpTo(_verticalBodyController.offset);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _horizontalBodyController.dispose();
+    _verticalBodyController.dispose();
+    _horizontalHeadController.dispose();
+    _verticalHeadController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchInitialData() async {
@@ -85,7 +105,7 @@ class _SchedulePageState extends State<SchedulePage> {
         setState(() {
           _storeName = (storeDoc.data() as Map<String, dynamic>)?['name'] ?? _storeName;
           _allEmployees = employees;
-          _storeEmployees = _allEmployees; // Initially, the table shows all employees of this store
+          _storeEmployees = _allEmployees;
           _isLoading = false;
         });
       }
@@ -95,7 +115,6 @@ class _SchedulePageState extends State<SchedulePage> {
     }
   }
 
-  // This function now acts as a "login" for the selected user
   void _updateCurrentUser(Map<String, dynamic> selectedEmployee) {
     setState(() {
       _currentUserName = selectedEmployee['name'] ?? 'Không rõ';
@@ -112,19 +131,16 @@ class _SchedulePageState extends State<SchedulePage> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                _buildControlPanel(),
+                // Control Panel is removed.
                 Expanded(child: _buildScheduleTable()),
               ],
             ),
       floatingActionButton: DevFab(onUserSwitch: _updateCurrentUser),
     );
   }
-
-  // --- WIDGET BUILDER METHODS ---
-
+  
   AppBar _buildAppBar() {
     return AppBar(
-      // Show store name prominently in the title
       title: Text(_storeName, style: const TextStyle(fontSize: 16)),
       centerTitle: true,
       actions: [
@@ -144,107 +160,116 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   Drawer _buildDrawer() {
-    // ... (Drawer UI remains the same)
-    return Drawer();
+    return Drawer(); // Placeholder for drawer
   }
 
-  Widget _buildControlPanel() {
-    // The store selector is removed as the store is now fixed for the device
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center, // Center the week navigation
-            children: [
-              IconButton(icon: const Icon(Icons.chevron_left), onPressed: () {}, color: Colors.deepPurple),
-              const Text('01/07 - 07/07', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple, fontSize: 16)),
-              IconButton(icon: const Icon(Icons.chevron_right), onPressed: () {}, color: Colors.deepPurple),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // --- NEW STICKY TABLE IMPLEMENTATION ---
 
   Widget _buildScheduleTable() {
-    final List<String> timeSlots = List.generate(19, (i) => '${(i + 5).toString().padLeft(2, '0')}:00');
-
     if (_storeEmployees.isEmpty) {
       return const Center(child: Text('Không có nhân viên nào tại cửa hàng này.'));
     }
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SizedBox(
-        width: (timeSlots.length * 100.0) + 150.0,
-        child: ListView.builder(
-          itemCount: _storeEmployees.length + 1,
-          itemBuilder: (context, rowIndex) {
-            if (rowIndex == 0) return _buildHeaderRow(timeSlots);
-            
-            final employee = _storeEmployees[rowIndex - 1];
-            return _buildDataRow(employee['name'] ?? 'N/A', timeSlots, rowIndex % 2 != 0);
-          },
-        ),
-      ),
-    );
-  }
-  
-  Widget _buildHeaderRow(List<String> timeSlots) {
-    return Container(
-      height: 48,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
-      ),
-      child: Row(
-        children: [
-          _buildHeaderCell('Nhân viên', 150),
-          ...timeSlots.map((time) => _buildHeaderCell(time, 100)).toList(),
-        ],
-      ),
-    );
-  }
+    final timeSlots = List.generate(19, (i) => '${(i + 5).toString().padLeft(2, '0')}:00');
+    const double firstColWidth = 150.0;
+    const double dataColWidth = 100.0;
+    const double headerHeight = 48.0;
 
-  Widget _buildDataRow(String employeeName, List<String> timeSlots, bool isEven) {
-    return Container(
-      height: 52,
-      color: isEven ? Colors.white : const Color(0xFFF8F9FA),
-      child: Row(
-        children: [
-          Container(
-            width: 150,
-            height: 52,
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            alignment: Alignment.centerLeft,
-            decoration: BoxDecoration(
-              color: isEven ? Colors.white : const Color(0xFFF8F9FA),
-              border: Border(right: BorderSide(color: Colors.grey.shade200)),
+    return Stack(
+      children: [
+        // Main scrollable data grid (bottom-right)
+        SingleChildScrollView(
+          controller: _horizontalBodyController,
+          scrollDirection: Axis.horizontal,
+          physics: const ClampingScrollPhysics(),
+          child: SingleChildScrollView(
+            controller: _verticalBodyController,
+            scrollDirection: Axis.vertical,
+            physics: const ClampingScrollPhysics(),
+            child: Column(
+              children: List.generate(_storeEmployees.length + 1, (rowIndex) {
+                if (rowIndex == 0) return SizedBox(height: headerHeight);
+                final isEven = rowIndex % 2 != 0;
+                return Row(
+                  children: [
+                    SizedBox(width: firstColWidth),
+                    ...timeSlots.map((time) {
+                      return Container(
+                        width: dataColWidth,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: isEven ? Colors.white : const Color(0xFFF8F9FA),
+                          border: Border(right: BorderSide(color: Colors.grey.shade200)),
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                );
+              }),
             ),
-            child: Text(employeeName, style: const TextStyle(fontWeight: FontWeight.w500)),
           ),
-          ...timeSlots.map((time) {
-            return Container(
-              width: 100,
-              height: 52,
-              decoration: BoxDecoration(
-                border: Border(right: BorderSide(color: Colors.grey.shade200)),
-              ),
-            );
-          }).toList(),
-        ],
-      ),
+        ),
+
+        // Sticky Header Row (top-right)
+        SizedBox(
+          height: headerHeight,
+          child: SingleChildScrollView(
+            controller: _horizontalHeadController,
+            scrollDirection: Axis.horizontal,
+            physics: const NeverScrollableScrollPhysics(),
+            child: Row(
+              children: [
+                SizedBox(width: firstColWidth),
+                ...timeSlots.map((time) => _buildCell(time, dataColWidth, headerHeight, Colors.grey.shade200, isHeader: true)).toList(),
+              ],
+            ),
+          ),
+        ),
+
+        // Sticky First Column (bottom-left)
+        SizedBox(
+          width: firstColWidth,
+          child: SingleChildScrollView(
+            controller: _verticalHeadController,
+            scrollDirection: Axis.vertical,
+            physics: const NeverScrollableScrollPhysics(),
+            child: Column(
+              children: List.generate(_storeEmployees.length + 1, (rowIndex) {
+                 if (rowIndex == 0) return SizedBox(height: headerHeight);
+                 final employee = _storeEmployees[rowIndex - 1];
+                 final isEven = rowIndex % 2 != 0;
+                return _buildCell(employee['name'] ?? 'N/A', firstColWidth, 52, isEven ? Colors.white : const Color(0xFFF8F9FA));
+              }),
+            ),
+          ),
+        ),
+
+        // Top-left corner cell
+        _buildCell('Nhân viên', firstColWidth, headerHeight, Colors.grey.shade200, isHeader: true),
+      ],
     );
   }
 
-  Widget _buildHeaderCell(String text, double width) {
+  Widget _buildCell(String text, double width, double height, Color color, {bool isHeader = false}) {
     return Container(
       width: width,
-      height: 48,
+      height: height,
+      decoration: BoxDecoration(
+        color: color,
+        border: Border.all(color: Colors.grey.shade300, width: 0.5),
+      ),
       alignment: Alignment.center,
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black54)),
+      child: Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
+            color: isHeader ? Colors.black54 : Colors.black87,
+          ),
+        ),
+      ),
     );
   }
 }

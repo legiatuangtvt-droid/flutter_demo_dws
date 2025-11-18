@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_demo_dws/data/mock_data.dart'; // Import the new data file
 
 // Renamed to better reflect its purpose
 class DevFab extends StatelessWidget {
@@ -9,8 +10,9 @@ class DevFab extends StatelessWidget {
     String message;
     switch (value) {
       case 'init_mock_data':
-        message = 'Chức năng "Khởi tạo dữ liệu mô phỏng" đang được xử lý...';
-        // TODO: Add logic to initialize mock data
+        // Call the function from the new data file
+        initializeMockData();
+        message = 'Đã gọi hàm khởi tạo dữ liệu. Kiểm tra console để xem kết quả.';
         break;
       case 'switch_user_role':
         message = 'Chức năng "Chuyển đổi vai trò người dùng" đang được xử lý...';

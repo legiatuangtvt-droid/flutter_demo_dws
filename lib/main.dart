@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_demo_dws/chat_fab.dart'; // This file now contains DevFab
+import 'package:flutter_demo_dws/chat_fab.dart'; 
 import 'firebase_options.dart';
 
 void main() async {
@@ -38,6 +38,19 @@ class _SchedulePageState extends State<SchedulePage> {
   String? _selectedStore = 'Store A';
   final List<String> _stores = ['Store A', 'Store B', 'Store C'];
 
+  // 1. Add state variables for the current user
+  String _currentUserName = 'Lê Gia Tuấn'; // Default name
+  String _currentUserRole = 'Quản lý';   // Default role
+
+  // 2. Create a handler function to update the user
+  void _updateCurrentUser(Map<String, dynamic> selectedEmployee) {
+    setState(() {
+      _currentUserName = selectedEmployee['name'] ?? 'Không rõ';
+      // For now, we'll use the roleId. A better approach would be to match it with the roles table.
+      _currentUserRole = selectedEmployee['roleId'] ?? 'Không rõ';
+    });
+  }
+
   List<DataColumn> _buildTimeColumns() {
     List<DataColumn> columns = [const DataColumn(label: Text('Nhân viên'))];
     for (int i = 5; i <= 23; i++) {
@@ -69,14 +82,15 @@ class _SchedulePageState extends State<SchedulePage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
-                children: const [
+                // Use the new state variables here
+                children: [
                   Text(
-                    'Lê Gia Tuấn',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    _currentUserName,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    'Quản lý',
-                    style: TextStyle(fontSize: 12.0),
+                    _currentUserRole,
+                    style: const TextStyle(fontSize: 12.0),
                   ),
                 ],
               ),
@@ -89,27 +103,18 @@ class _SchedulePageState extends State<SchedulePage> {
           padding: EdgeInsets.zero,
           children: [
             const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.deepPurple,
-              ),
-              child: Text(
-                'Menu',
-                style: TextStyle(color: Colors.white, fontSize: 24),
-              ),
+              decoration: BoxDecoration(color: Colors.deepPurple),
+              child: Text('Menu', style: TextStyle(color: Colors.white, fontSize: 24)),
             ),
             ListTile(
               leading: const Icon(Icons.calendar_today),
               title: const Text('Lịch hàng ngày'),
-              onTap: () {
-                Navigator.pop(context);
-              },
+              onTap: () => Navigator.pop(context),
             ),
             ListTile(
               leading: const Icon(Icons.calendar_month),
               title: const Text('Lịch hàng tháng'),
-              onTap: () {
-                Navigator.pop(context);
-              },
+              onTap: () => Navigator.pop(context),
             ),
           ],
         ),
@@ -124,28 +129,17 @@ class _SchedulePageState extends State<SchedulePage> {
                 DropdownButton<String>(
                   value: _selectedStore,
                   items: _stores.map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
+                    return DropdownMenuItem<String>(value: value, child: Text(value));
                   }).toList(),
                   onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedStore = newValue;
-                    });
+                    setState(() => _selectedStore = newValue);
                   },
                 ),
                 Row(
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left),
-                      onPressed: () {},
-                    ),
+                    IconButton(icon: const Icon(Icons.chevron_left), onPressed: () {}),
                     const Text('T2 01/07 - CN 07/07'),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right),
-                      onPressed: () {},
-                    ),
+                    IconButton(icon: const Icon(Icons.chevron_right), onPressed: () {}),
                   ],
                 ),
               ],
@@ -168,8 +162,8 @@ class _SchedulePageState extends State<SchedulePage> {
           ],
         ),
       ),
-      // Changed to use the new DevFab
-      floatingActionButton: const DevFab(),
+      // 3. Pass the handler function to the DevFab widget
+      floatingActionButton: DevFab(onUserSwitch: _updateCurrentUser),
     );
   }
 }

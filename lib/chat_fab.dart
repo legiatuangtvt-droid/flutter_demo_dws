@@ -4,7 +4,10 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter_demo_dws/data/mock_data.dart';
 
 class DevFab extends StatelessWidget {
-  const DevFab({super.key});
+  // 1. Accept a callback function
+  final void Function(Map<String, dynamic> selectedEmployee)? onUserSwitch;
+
+  const DevFab({super.key, this.onUserSwitch});
 
   void _showToast(String message, {ToastType type = ToastType.info}) {
     Color backgroundColor;
@@ -42,7 +45,8 @@ class DevFab extends StatelessWidget {
         showDialog(
           context: context,
           builder: (BuildContext context) {
-            return const _SwitchUserRoleDialog();
+            // 2. Pass the callback down to the dialog
+            return _SwitchUserRoleDialog(onApply: onUserSwitch);
           },
         );
         break;
@@ -88,14 +92,15 @@ class DevFab extends StatelessWidget {
 // --- Dialog for Switching User Role ---
 
 class _SwitchUserRoleDialog extends StatefulWidget {
-  const _SwitchUserRoleDialog();
+  // 3. Accept the callback in the dialog's constructor
+  final void Function(Map<String, dynamic> selectedEmployee)? onApply;
+  const _SwitchUserRoleDialog({this.onApply});
 
   @override
   State<_SwitchUserRoleDialog> createState() => __SwitchUserRoleDialogState();
 }
 
 class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
-  // State variables
   bool _isLoading = true;
   List<Map<String, dynamic>> _roles = [];
   List<Map<String, dynamic>> _employees = [];
@@ -114,7 +119,7 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
     try {
       final firestore = FirebaseFirestore.instance;
       final results = await Future.wait([
-        firestore.collection('roles').orderBy('name').get(), // Sort roles by name
+        firestore.collection('roles').orderBy('name').get(),
         firestore.collection('employee').get(),
       ]);
 
@@ -129,12 +134,8 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-      print("Error fetching data in parallel: $e");
+      if (mounted) setState(() => _isLoading = false);
+      print("Error fetching data: $e");
     }
   }
 
@@ -144,18 +145,32 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
       _selectedRoleId = newRoleId;
       _selectedEmployeeId = null;
       _filteredEmployees = _employees.where((emp) => emp['roleId'] == newRoleId).toList();
-      // Sort employees by name
       _filteredEmployees.sort((a, b) => (a['name'] ?? '').compareTo(b['name'] ?? ''));
     });
+  }
+
+  void _applyAndClose() {
+    if (_selectedEmployeeId == null || widget.onApply == null) return;
+
+    // Find the full employee object from the list
+    final selectedEmployee = _employees.firstWhere(
+      (emp) => emp['id'] == _selectedEmployeeId,
+      orElse: () => {},
+    );
+
+    if (selectedEmployee.isNotEmpty) {
+      // 4. Call the callback with the selected employee data
+      widget.onApply!(selectedEmployee);
+    }
+    Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Chuyển đổi vai trò người dùng'),
-      // Use a container with a fixed height to prevent resizing
       content: Container(
-        height: 180, 
+        height: 180,
         width: double.maxFinite,
         child: _isLoading
             ? Center(
@@ -181,7 +196,7 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
                     ),
                     items: _roles.map((role) {
                       return DropdownMenuItem<String>(
-                        value: role['id'],
+                        value: role['id'] ?? '',
                         child: Text(role['name'] ?? 'N/A'),
                       );
                     }).toList(),
@@ -205,35 +220,24 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
                     },
                     items: _filteredEmployees.map((employee) {
                       return DropdownMenuItem<String>(
-                        value: employee['id'],
+                        value: employee['id'] ?? '',
                         child: Text(employee['name'] ?? 'N/A'),
                       );
                     }).toList(),
                     hint: _selectedRoleId != null && _filteredEmployees.isEmpty
-                        ? const Padding(
-                            padding: EdgeInsets.only(left: 8.0),
-                            child: Text('Không có nhân viên'),
-                          )
+                        ? const Padding(padding: EdgeInsets.only(left: 8.0), child: Text('Không có nhân viên'),)
                         : null,
                   ),
                 ],
               ),
       ),
       actions: <Widget>[
-        TextButton(
-          child: const Text('Hủy'),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Hủy')),
         FilledButton.icon(
           icon: const Icon(Icons.check_circle_outline),
           label: const Text('Áp dụng'),
-          onPressed: (_selectedEmployeeId != null)
-              ? () {
-                  // TODO: Implement the actual user switching logic here
-                  print('Switching to user: $_selectedEmployeeId with role: $_selectedRoleId');
-                  Navigator.of(context).pop();
-                }
-              : null, 
+          // 5. Call the new apply function
+          onPressed: _selectedEmployeeId != null ? _applyAndClose : null,
         ),
       ],
     );

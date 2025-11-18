@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
+// This enum is now here to be accessible by both files without circular dependency.
+enum ToastType { info, success, error }
+
 // Raw JSON string containing the new mock data structure.
 const String mockDataJsonString = '''
 {
@@ -35,10 +38,9 @@ const String mockDataJsonString = '''
 ''';
 
 
-/// Deletes all documents in the specified collections and then uploads the new mock data.
-/// Returns a string message indicating the result.
-Future<String> initializeMockData() async {
-  debugPrint('--- Starting to clear and upload mock data to Firestore ---');
+/// Deletes and uploads mock data, providing progress updates via a callback.
+Future<void> initializeMockData(Function(String message, {ToastType type}) onProgress) async {
+  onProgress('[1/4] Bắt đầu đồng bộ hóa...', type: ToastType.info);
   final firestore = FirebaseFirestore.instance;
   
   try {
@@ -47,42 +49,39 @@ Future<String> initializeMockData() async {
     int totalDocsWritten = 0;
     int totalDocsDeleted = 0;
 
+    onProgress('[2/4] Đang xóa dữ liệu cũ...', type: ToastType.info);
+    for (final collectionName in allData.keys) {
+      final QuerySnapshot snapshot = await firestore.collection(collectionName).get();
+      if (snapshot.docs.isNotEmpty) {
+        debugPrint('Found ${snapshot.docs.length} docs in $collectionName to delete.');
+        for (final doc in snapshot.docs) {
+          batch.delete(doc.reference);
+          totalDocsDeleted++;
+        }
+      }
+    }
+
+    onProgress('[3/4] Đang chuẩn bị dữ liệu mới...', type: ToastType.info);
     for (final entry in allData.entries) {
       final collectionName = entry.key;
       final List<dynamic> items = entry.value;
-
-      // --- DELETION PART ---
-      debugPrint('Querying existing documents in \'$collectionName\' for deletion...');
-      final QuerySnapshot snapshot = await firestore.collection(collectionName).get();
-      for (final doc in snapshot.docs) {
-        batch.delete(doc.reference);
-        totalDocsDeleted++;
-      }
-      debugPrint('Found and queued ${snapshot.docs.length} documents for deletion in \'$collectionName\'.');
-
-      // --- WRITING PART ---
       for (final item in items) {
         if (item is Map<String, dynamic> && item.containsKey('id')) {
           final String docId = item['id'];
           final DocumentReference docRef = firestore.collection(collectionName).doc(docId);
           batch.set(docRef, item);
           totalDocsWritten++;
-        } else {
-          debugPrint('[WARNING] Skipping item in $collectionName because it has no ID: $item');
         }
       }
     }
-
-    // Commit the batch to execute all deletes and writes at once
+    
     await batch.commit();
     
-    final successMessage = 'Đồng bộ hóa thành công: Đã xóa $totalDocsDeleted và tải lên $totalDocsWritten tài liệu!';
-    debugPrint(successMessage);
-    return successMessage; // Return success message
+    final successMessage = '[4/4] Thành công: $totalDocsDeleted tài liệu đã xóa, $totalDocsWritten đã ghi.';
+    onProgress(successMessage, type: ToastType.success);
 
   } catch (e) {
-    final errorMessage = 'Lỗi khi đồng bộ hóa dữ liệu: $e';
-    debugPrint(errorMessage);
-    return errorMessage; // Return error message
+    final errorMessage = 'Lỗi: $e';
+    onProgress(errorMessage, type: ToastType.error);
   }
 }

@@ -34,19 +34,30 @@ class DevFab extends StatelessWidget {
     return PopupMenuButton<String>(
       tooltip: 'Developer Menu', // The tooltip is now on the PopupMenuButton
       onSelected: (value) => _handleMenuSelection(value, context),
+      // Improved item builder with Icons
       itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'init_mock_data',
-          child: Text('Khởi tạo dữ liệu mô phỏng'),
+          child: Row(
+            children: const [
+              Icon(Icons.post_add, color: Colors.blue), // Added Icon
+              SizedBox(width: 12), // Added spacing
+              Text('Khởi tạo dữ liệu mô phỏng'),
+            ],
+          ),
         ),
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'switch_user_role',
-          child: Text('Chuyển đổi vai trò người dùng'),
+          child: Row(
+            children: const [
+              Icon(Icons.switch_account, color: Colors.green), // Added Icon
+              SizedBox(width: 12), // Added spacing
+              Text('Chuyển đổi vai trò người dùng'),
+            ],
+          ),
         ),
       ],
       // The child is the FAB itself.
-      // We provide a non-null onPressed to the FAB to ensure it's enabled and shows a ripple effect.
-      // The PopupMenuButton's own gesture detector will handle opening the menu.
       child: FloatingActionButton(
         onPressed: null, // The parent PopupMenuButton handles the press.
         backgroundColor: Colors.orange[800],

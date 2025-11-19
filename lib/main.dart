@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/gestures.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'features/schedule/pages/schedule_page.dart'; // Import trang mới
+import 'features/schedule/pages/schedule_page.dart';
+import 'core/config/scroll_behavior.dart'; // Import cấu hình mới
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,18 +10,6 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(const MyApp());
-}
-
-// Lớp này định nghĩa lại hành vi cuộn cho toàn bộ ứng dụng
-class MyCustomScrollBehavior extends MaterialScrollBehavior {
-  // Ghi đè phương thức get dragDevices để bao gồm tất cả các loại thiết bị
-  @override
-  Set<PointerDeviceKind> get dragDevices => {
-        PointerDeviceKind.touch,
-        PointerDeviceKind.mouse,
-        PointerDeviceKind.stylus,
-        PointerDeviceKind.unknown,
-      };
 }
 
 class MyApp extends StatelessWidget {

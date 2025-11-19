@@ -71,7 +71,8 @@ class _SchedulePageState extends State<SchedulePage> {
     // Synchronize horizontal scroll from body to header
     _horizontalBodyController.addListener(() {
       if (_horizontalHeaderController.hasClients &&
-          _horizontalHeaderController.offset != _horizontalBodyController.offset) {
+          _horizontalHeaderController.offset !=
+              _horizontalBodyController.offset) {
         _horizontalHeaderController.jumpTo(_horizontalBodyController.offset);
       }
     });
@@ -79,7 +80,8 @@ class _SchedulePageState extends State<SchedulePage> {
     // Synchronize vertical scroll from body to first column
     _verticalBodyController.addListener(() {
       if (_verticalFirstColumnController.hasClients &&
-          _verticalFirstColumnController.offset != _verticalBodyController.offset) {
+          _verticalFirstColumnController.offset !=
+              _verticalBodyController.offset) {
         _verticalFirstColumnController.jumpTo(_verticalBodyController.offset);
       }
     });
@@ -120,7 +122,8 @@ class _SchedulePageState extends State<SchedulePage> {
         'id': doc.id,
         ...doc.data() as Map<String, dynamic>
       }).toList();
-      final schedule = (templateDoc.data() as Map<String, dynamic>)['schedule'] ??
+      final schedule = (templateDoc.data() as Map<String,
+          dynamic>)['schedule'] ??
           {};
       final taskGroups = taskGroupsSnapshot.docs.map((doc) =>
       {
@@ -200,7 +203,9 @@ class _SchedulePageState extends State<SchedulePage> {
               ), // Icon sẽ được tự động căn giữa
             ),
             onPressed: () => Scaffold.of(context).openDrawer(),
-            tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
+            tooltip: MaterialLocalizations
+                .of(context)
+                .openAppDrawerTooltip,
           );
         },
       ),
@@ -214,8 +219,10 @@ class _SchedulePageState extends State<SchedulePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(_currentUserName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              Text(_currentUserRole, style: const TextStyle(fontSize: 12.0, color: Colors.black54)),
+              Text(_currentUserName, style: const TextStyle(
+                  fontWeight: FontWeight.bold, fontSize: 14)),
+              Text(_currentUserRole, style: const TextStyle(
+                  fontSize: 12.0, color: Colors.black54)),
             ],
           ),
         ),
@@ -229,11 +236,16 @@ class _SchedulePageState extends State<SchedulePage> {
         padding: EdgeInsets.zero,
         children: [
           UserAccountsDrawerHeader(
-            accountName: Text(_currentUserName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-            accountEmail: Text(_currentUserRole, style: const TextStyle(color: Colors.white70)),
+            accountName: Text(_currentUserName, style: const TextStyle(
+                fontWeight: FontWeight.bold, color: Colors.white)),
+            accountEmail: Text(_currentUserRole,
+                style: const TextStyle(color: Colors.white70)),
             currentAccountPicture: CircleAvatar(
               backgroundColor: Colors.white,
-              child: Text(_currentUserName.isNotEmpty ? _currentUserName[0] : 'U', style: const TextStyle(fontSize: 24.0, color: Colors.deepPurple)),
+              child: Text(
+                  _currentUserName.isNotEmpty ? _currentUserName[0] : 'U',
+                  style: const TextStyle(
+                      fontSize: 24.0, color: Colors.deepPurple)),
             ),
             decoration: const BoxDecoration(
               color: Colors.deepPurple,
@@ -268,217 +280,207 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   // --- STICKY TABLE IMPLEMENTATION (REFACTORED FOR DIAGONAL SCROLL) ---
+
+  // Hàm helper để dựng các ô, giúp code gọn hơn
+  Widget _buildCell(String text, double width, double height, Color bgColor,
+      {bool isHeader = false, double borderWidth = 1.5}) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: bgColor,
+        border: Border(
+          right: BorderSide(color: Colors.grey.shade300, width: borderWidth),
+          bottom: BorderSide(color: Colors.grey.shade300, width: borderWidth),
+        ),
+      ),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
+          fontSize: isHeader ? 14 : 12,
+        ),
+      ),
+    );
+  }
+
   Widget _buildScheduleTable() {
     if (_storeEmployees.isEmpty) {
-      return const Center(child: Text('Không có nhân viên nào tại cửa hàng này.'));
+      return const Center(
+          child: Text('Không có nhân viên nào tại cửa hàng này.'));
     }
 
-    final timeSlots = List.generate(19 * 4, (i) => i);
     const double firstColWidth = 150.0;
     const double dataColWidth = 70.0;
     const double rowHeight = 100.0;
     const double headerHeight = 48.0;
     const double borderWidth = 1.5;
 
-    // ---- CỘT CỐ ĐỊNH ----
-    final employeeNameCells = List.generate(_storeEmployees.length, (rowIndex) {
-      final employee = _storeEmployees[rowIndex];
-      final isEven = rowIndex % 2 == 0;
-      final rowBgColor = isEven ? Colors.white : const Color(0xFFF8F9FA);
-      return _buildCell(employee['name'] ?? 'N/A', firstColWidth, rowHeight, rowBgColor);
-    });
+    // Sắp xếp các ca làm việc, có thể di chuyển ra ngoài nếu không thay đổi
+    final sortedShiftKeys = _scheduleData.keys.toList()
+      ..sort((a, b) {
+        final numA = int.tryParse(a
+            .split('-')
+            .last) ?? 0;
+        final numB = int.tryParse(b
+            .split('-')
+            .last) ?? 0;
+        return numA.compareTo(numB);
+      });
 
-    // ---- HEADER CUỘN NGANG ----
-    final headerWidgets = List.generate(19, (i) {
-      final hour = '${(i + 5).toString().padLeft(2, '0')}:00';
-      return _buildCell(hour, dataColWidth * 4, headerHeight, Colors.grey.shade200, isHeader: true);
-    });
-
-    // ---- BODY CUỘN ----
-    final bodyRows = List.generate(_storeEmployees.length, (rowIndex) {
-      final isEven = rowIndex % 2 == 0;
-      final rowBgColor = isEven ? Colors.white : const Color(0xFFF8F9FA);
-
-      List<dynamic> employeeTasks = [];
-      final sortedShiftKeys = _scheduleData.keys.toList()
-        ..sort((a, b) {
-          final numA = int.tryParse(a.split('-').last) ?? 0;
-          final numB = int.tryParse(b.split('-').last) ?? 0;
-          return numA.compareTo(numB);
-        });
-
-      if (rowIndex < sortedShiftKeys.length) {
-        final shiftKey = sortedShiftKeys[rowIndex];
-        employeeTasks = _scheduleData[shiftKey] ?? [];
-      }
-
-      return Row(
-        children: [
-          ...timeSlots.map((quarterIndex) {
-            final hour = (quarterIndex ~/ 4) + 5;
-            final minute = (quarterIndex % 4) * 15;
-            final currentTime = '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
-
-            final task = employeeTasks.firstWhere((t) => t['startTime'] == currentTime, orElse: () => null);
-
-            Widget cellContent = const SizedBox();
-            if (task != null) {
-              final Iterable<Map<String, dynamic>> matchingGroups = _taskGroups.where((g) => g['id'] == task['groupId']);
-              final Map<String, dynamic>? taskGroup = matchingGroups.isNotEmpty ? matchingGroups.first : null;
-              final bgColor = taskGroup != null ? _getColorFromHex(taskGroup['color']['bg']) : Colors.grey.shade300;
-              final borderColor = HSLColor.fromColor(bgColor).withLightness((HSLColor.fromColor(bgColor).lightness - 0.2).clamp(0.0, 1.0)).toColor();
-
-              cellContent = Container(
-                margin: const EdgeInsets.all(2.0),
-                padding: const EdgeInsets.all(4.0),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(4.0),
-                  border: Border.all(color: borderColor, width: 1.5),
-                ),
-                child: Center(
-                  child: Text(
-                    task['taskName'],
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.black87),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 5,
-                  ),
-                ),
-              );
-            }
-
-            return Container(
-              width: dataColWidth,
-              height: rowHeight,
-              decoration: BoxDecoration(
-                color: rowBgColor,
-                border: Border(
-                  right: BorderSide(
-                    color: (quarterIndex % 4 == 3) ? Colors.black : Colors.grey.shade300,
-                    width: (quarterIndex % 4 == 3) ? borderWidth : 0.5,
-                  ),
-                  bottom: const BorderSide(color: Colors.black, width: borderWidth),
+    return Column(
+      children: [
+        // ---- HÀNG HEADER (CỐ ĐỊNH CHIỀU DỌC) ----
+        Row(
+          children: [
+            // Ô cố định trên cùng bên trái
+            _buildCell(
+                'Nhân viên', firstColWidth, headerHeight, Colors.grey.shade300,
+                isHeader: true),
+            // Các ô header cuộn ngang
+            Expanded(
+              child: SingleChildScrollView(
+                controller: _horizontalHeaderController,
+                scrollDirection: Axis.horizontal,
+                physics: const NeverScrollableScrollPhysics(),
+                // Body sẽ điều khiển scroll
+                child: Row(
+                  children: List.generate(19, (i) {
+                    final hour = '${(i + 5).toString().padLeft(2, '0')}:00';
+                    return _buildCell(hour, dataColWidth * 4, headerHeight,
+                        Colors.grey.shade200, isHeader: true);
+                  }),
                 ),
               ),
-              child: cellContent,
-            );
-          })
-        ],
-      );
-    });
-
-    return Container(
-      margin: const EdgeInsets.all(8.0),
-      decoration: const BoxDecoration(
-        border: Border(
-          left: BorderSide(color: Colors.black, width: borderWidth),
-          top: BorderSide(color: Colors.black, width: borderWidth),
-        ),
-      ),
-      child: Row(
-        children: [
-          // --- CỘT CỐ ĐỊNH BÊN TRÁI ---
-          SizedBox(
-            width: firstColWidth,
-            child: Column(
-              children: [
-                // Ô CỐ ĐỊNH TRÊN CÙNG BÊN TRÁI
-                _buildCell('Nhân viên', firstColWidth, headerHeight, Colors.grey.shade200, isHeader: true),
-                // DANH SÁCH NHÂN VIÊN CUỘN DỌC
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: _verticalFirstColumnController,
-                    physics: const NeverScrollableScrollPhysics(), // Prevent default scrolling
-                    child: Column(
-                      children: employeeNameCells,
-                    ),
-                  ),
-                ),
-              ],
             ),
-          ),
-
-          // --- KHU VỰC CUỘN (HEADER NGANG + BODY) ---
-          Expanded(
-            child: GestureDetector(
-              onPanUpdate: (details) {
-                // Horizontal scroll
-                if (_horizontalBodyController.hasClients) {
-                  final newHorizontalOffset = (_horizontalBodyController.offset - details.delta.dx)
-                      .clamp(0.0, _horizontalBodyController.position.maxScrollExtent);
-                  _horizontalBodyController.jumpTo(newHorizontalOffset);
-                }
-
-                // Vertical scroll
-                if (_verticalBodyController.hasClients) {
-                  final newVerticalOffset = (_verticalBodyController.offset - details.delta.dy)
-                      .clamp(0.0, _verticalBodyController.position.maxScrollExtent);
-                  _verticalBodyController.jumpTo(newVerticalOffset);
-                }
-              },
-              child: Column(
-                children: [
-                  // HEADER CUỘN NGANG
-                  SingleChildScrollView(
-                    controller: _horizontalHeaderController,
-                    scrollDirection: Axis.horizontal,
-                    physics: const NeverScrollableScrollPhysics(), // Prevent default scrolling
-                    child: Row(
-                      children: headerWidgets,
-                    ),
-                  ),
-
-                  // BODY CUỘN DỌC VÀ NGANG
-                  Expanded(
-                    child: SingleChildScrollView(
+          ],
+        ),
+        // ---- KHU VỰC CUỘN ----
+        Expanded(
+          child: Row(
+            children: [
+              // ---- CỘT ĐẦU TIÊN (CỐ ĐỊNH CHIỀU NGANG, CUỘN DỌC) ----
+              SizedBox(
+                width: firstColWidth,
+                child: ListView.builder(
+                  controller: _verticalFirstColumnController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  // Body sẽ điều khiển scroll
+                  itemCount: _storeEmployees.length,
+                  itemBuilder: (context, rowIndex) {
+                    final employee = _storeEmployees[rowIndex];
+                    final isEven = rowIndex % 2 == 0;
+                    final rowBgColor = isEven ? Colors.white : const Color(
+                        0xFFF8F9FA);
+                    return _buildCell(
+                        employee['name'] ?? 'N/A', firstColWidth, rowHeight,
+                        rowBgColor);
+                  },
+                ),
+              ),
+              // ---- PHẦN BODY (CUỘN CẢ 2 CHIỀU) ----
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  controller: _horizontalBodyController,
+                  child: SizedBox(
+                    width: dataColWidth * 19 * 4,
+                    child: ListView.builder(
                       controller: _verticalBodyController,
-                      physics: const NeverScrollableScrollPhysics(), // Prevent default scrolling
-                      child: SingleChildScrollView(
-                        controller: _horizontalBodyController,
-                        scrollDirection: Axis.horizontal,
-                        physics: const NeverScrollableScrollPhysics(), // Prevent default scrolling
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: bodyRows,
-                        ),
-                      ),
+                      itemCount: _storeEmployees.length,
+                      itemBuilder: (context, rowIndex) {
+                        final isEven = rowIndex % 2 == 0;
+                        final rowBgColor = isEven ? Colors.white : const Color(
+                            0xFFF8F9FA);
+
+                        List<dynamic> employeeTasks = [];
+                        if (rowIndex < sortedShiftKeys.length) {
+                          final shiftKey = sortedShiftKeys[rowIndex];
+                          employeeTasks = _scheduleData[shiftKey] ?? [];
+                        }
+
+                        return Row(
+                          children: List.generate(19 * 4, (quarterIndex) {
+                            final hour = (quarterIndex ~/ 4) + 5;
+                            final minute = (quarterIndex % 4) * 15;
+                            final currentTime = '${hour.toString().padLeft(
+                                2, '0')}:${minute.toString().padLeft(2, '0')}';
+
+                            final task = employeeTasks.firstWhere((
+                                t) => t['startTime'] == currentTime,
+                                orElse: () => null);
+
+                            Widget cellContent = const SizedBox();
+                            if (task != null) {
+                              final Iterable<Map<String,
+                                  dynamic>> matchingGroups = _taskGroups.where((
+                                  g) => g['id'] == task['groupId']);
+                              final Map<String,
+                                  dynamic>? taskGroup = matchingGroups
+                                  .isNotEmpty ? matchingGroups.first : null;
+                              final bgColor = taskGroup != null
+                                  ? _getColorFromHex(taskGroup['color']['bg'])
+                                  : Colors.grey.shade300;
+                              final borderColor = HSLColor
+                                  .fromColor(bgColor)
+                                  .withLightness((HSLColor
+                                  .fromColor(bgColor)
+                                  .lightness - 0.2).clamp(0.0, 1.0))
+                                  .toColor();
+
+                              cellContent = Container(
+                                margin: const EdgeInsets.all(2.0),
+                                padding: const EdgeInsets.all(4.0),
+                                decoration: BoxDecoration(
+                                  color: bgColor,
+                                  borderRadius: BorderRadius.circular(4.0),
+                                  border: Border.all(
+                                      color: borderColor, width: 1.5),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    task['taskName'],
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.black87),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 5,
+                                  ),
+                                ),
+                              );
+                            }
+
+                            // Đây là ô chứa trong body
+                            return Container(
+                              width: dataColWidth,
+                              height: rowHeight,
+                              decoration: BoxDecoration(
+                                color: rowBgColor,
+                                border: Border(
+                                  right: BorderSide(color: Colors.grey.shade300,
+                                      width: borderWidth),
+                                  bottom: BorderSide(
+                                      color: Colors.grey.shade300,
+                                      width: borderWidth),
+                                ),
+                              ),
+                              child: cellContent,
+                            );
+                          }),
+                        );
+                      },
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCell(String text, double width, double height, Color color, {bool isHeader = false}) {
-    const double borderWidth = 1.5;
-
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: color,
-        border: const Border(
-          right: BorderSide(color: Colors.black, width: borderWidth),
-          bottom: BorderSide(color: Colors.black, width: borderWidth),
-        ),
-      ),
-      alignment: Alignment.center,
-      child: Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
-            color: isHeader ? Colors.black54 : Colors.black87,
+            ],
           ),
         ),
-      ),
+      ],
     );
   }
 }

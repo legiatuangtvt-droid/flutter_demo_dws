@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'chat_fab.dart';
@@ -12,12 +13,26 @@ void main() async {
   runApp(const MyApp());
 }
 
+// LỚP MỚI: Định nghĩa lại hành vi cuộn cho toàn bộ ứng dụng
+class MyCustomScrollBehavior extends MaterialScrollBehavior {
+  // Ghi đè phương thức get dragDevices để bao gồm tất cả các loại thiết bị
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.stylus,
+        PointerDeviceKind.unknown,
+      };
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      // ÁP DỤNG HÀNH VI CUỘN MỚI
+      scrollBehavior: MyCustomScrollBehavior(),
       title: 'Flutter Demo',
       theme: ThemeData(
         primarySwatch: Colors.deepPurple,
@@ -30,7 +45,8 @@ class MyApp extends StatelessWidget {
           backgroundColor: Colors.white,
           foregroundColor: Colors.black87,
           elevation: 1,
-          titleTextStyle: TextStyle(fontSize: 18, color: Colors.black87, fontWeight: FontWeight.w600),
+          titleTextStyle: TextStyle(
+              fontSize: 18, color: Colors.black87, fontWeight: FontWeight.w600),
         ),
       ),
       home: const SchedulePage(),
@@ -290,8 +306,8 @@ class _SchedulePageState extends State<SchedulePage> {
       decoration: BoxDecoration(
         color: bgColor,
         border: Border(
-          right: BorderSide(color: Colors.grey.shade300, width: borderWidth),
-          bottom: BorderSide(color: Colors.grey.shade300, width: borderWidth),
+          right: BorderSide(color: Colors.black, width: borderWidth), // <-- ĐỔI THÀNH MÀU ĐEN
+          bottom: BorderSide(color: Colors.black, width: borderWidth), // <-- ĐỔI THÀNH MÀU ĐEN
         ),
       ),
       alignment: Alignment.center,
@@ -367,17 +383,16 @@ class _SchedulePageState extends State<SchedulePage> {
                 width: firstColWidth,
                 child: ListView.builder(
                   controller: _verticalFirstColumnController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  // Body sẽ điều khiển scroll
+                  physics: const NeverScrollableScrollPhysics(), // Body sẽ điều khiển scroll
                   itemCount: _storeEmployees.length,
                   itemBuilder: (context, rowIndex) {
                     final employee = _storeEmployees[rowIndex];
                     final isEven = rowIndex % 2 == 0;
-                    final rowBgColor = isEven ? Colors.white : const Color(
-                        0xFFF8F9FA);
-                    return _buildCell(
-                        employee['name'] ?? 'N/A', firstColWidth, rowHeight,
-                        rowBgColor);
+                    final rowBgColor = isEven
+                        ? Colors.white
+                        : const Color(0xFFF8F9FA);
+                    return _buildCell(employee['name'] ?? 'N/A',
+                        firstColWidth, rowHeight, rowBgColor);
                   },
                 ),
               ),
@@ -386,15 +401,18 @@ class _SchedulePageState extends State<SchedulePage> {
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   controller: _horizontalBodyController,
+                  physics: const AlwaysScrollableScrollPhysics(),
                   child: SizedBox(
                     width: dataColWidth * 19 * 4,
                     child: ListView.builder(
                       controller: _verticalBodyController,
+                      physics: const AlwaysScrollableScrollPhysics(),
                       itemCount: _storeEmployees.length,
                       itemBuilder: (context, rowIndex) {
                         final isEven = rowIndex % 2 == 0;
-                        final rowBgColor = isEven ? Colors.white : const Color(
-                            0xFFF8F9FA);
+                        final rowBgColor = isEven
+                            ? Colors.white
+                            : const Color(0xFFF8F9FA);
 
                         List<dynamic> employeeTasks = [];
                         if (rowIndex < sortedShiftKeys.length) {
@@ -406,29 +424,31 @@ class _SchedulePageState extends State<SchedulePage> {
                           children: List.generate(19 * 4, (quarterIndex) {
                             final hour = (quarterIndex ~/ 4) + 5;
                             final minute = (quarterIndex % 4) * 15;
-                            final currentTime = '${hour.toString().padLeft(
-                                2, '0')}:${minute.toString().padLeft(2, '0')}';
+                            final currentTime =
+                                '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
 
-                            final task = employeeTasks.firstWhere((
-                                t) => t['startTime'] == currentTime,
+                            final task = employeeTasks.firstWhere(
+                                (t) => t['startTime'] == currentTime,
                                 orElse: () => null);
 
                             Widget cellContent = const SizedBox();
                             if (task != null) {
-                              final Iterable<Map<String,
-                                  dynamic>> matchingGroups = _taskGroups.where((
-                                  g) => g['id'] == task['groupId']);
-                              final Map<String,
-                                  dynamic>? taskGroup = matchingGroups
-                                  .isNotEmpty ? matchingGroups.first : null;
+                              final Iterable<Map<String, dynamic>>
+                              matchingGroups = _taskGroups.where(
+                                      (g) => g['id'] == task['groupId']);
+                              final Map<String, dynamic>? taskGroup =
+                              matchingGroups.isNotEmpty
+                                  ? matchingGroups.first
+                                  : null;
                               final bgColor = taskGroup != null
-                                  ? _getColorFromHex(taskGroup['color']['bg'])
+                                  ? _getColorFromHex(
+                                  taskGroup['color']['bg'])
                                   : Colors.grey.shade300;
-                              final borderColor = HSLColor
-                                  .fromColor(bgColor)
-                                  .withLightness((HSLColor
-                                  .fromColor(bgColor)
-                                  .lightness - 0.2).clamp(0.0, 1.0))
+                              final borderColor = HSLColor.fromColor(bgColor)
+                                  .withLightness(
+                                      (HSLColor.fromColor(bgColor).lightness -
+                                          0.2)
+                                          .clamp(0.0, 1.0))
                                   .toColor();
 
                               cellContent = Container(
@@ -444,7 +464,8 @@ class _SchedulePageState extends State<SchedulePage> {
                                   child: Text(
                                     task['taskName'],
                                     textAlign: TextAlign.center,
-                                    style: const TextStyle(fontSize: 10,
+                                    style: const TextStyle(
+                                        fontSize: 10,
                                         fontWeight: FontWeight.w500,
                                         color: Colors.black87),
                                     overflow: TextOverflow.ellipsis,
@@ -455,21 +476,23 @@ class _SchedulePageState extends State<SchedulePage> {
                             }
 
                             // Đây là ô chứa trong body
+                            // ---- BẮT ĐẦU CHỈNH SỬA BORDER ----
+                            final bool isHourlyBorder = (quarterIndex + 1) % 4 == 0;
+                            final Color rightBorderColor = isHourlyBorder ? Colors.black : Colors.grey.shade300;
+
                             return Container(
                               width: dataColWidth,
                               height: rowHeight,
                               decoration: BoxDecoration(
                                 color: rowBgColor,
                                 border: Border(
-                                  right: BorderSide(color: Colors.grey.shade300,
-                                      width: borderWidth),
-                                  bottom: BorderSide(
-                                      color: Colors.grey.shade300,
-                                      width: borderWidth),
+                                  right: BorderSide(color: rightBorderColor, width: borderWidth),
+                                  bottom: BorderSide(color: Colors.black, width: borderWidth),
                                 ),
                               ),
                               child: cellContent,
                             );
+                            // ---- KẾT THÚC CHỈNH SỬA BORDER ----
                           }),
                         );
                       },

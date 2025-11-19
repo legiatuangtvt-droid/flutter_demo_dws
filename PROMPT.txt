@@ -1,0 +1,61 @@
+I. PROMPT tạo tài liệu thiết kế
+
+Bước 1: Sử dụng mẫu PROMPT chuẩn sau đây:
+
+Hãy đóng vai trò là một người quản lý sản phẩm (Product Manager). 
+Dựa trên việc phân tích giao diện và hoạt động của dự án demo này, hãy viết một tài liệu mô tả yêu cầu tính năng dành cho đội ngũ phát triển.
+Quan trọng: Bản mô tả này phải hoàn toàn độc lập với công nghệ. 
+Không được đề cập đến bất kỳ tên công cụ, thư viện, cơ sở dữ liệu, hay cấu trúc code cụ thể nào từ bản demo. 
+Hãy mô tả các yêu cầu dưới góc độ của người dùng cuối và mục tiêu nghiệp vụ, để cho đội ngũ phát triển tự do lựa chọn công nghệ phù hợp nhất để hiện thực hóa các yêu cầu này.
+Với mỗi tính năng chính của ứng dụng, hãy trình bày theo cấu trúc sau:
+1.Tên Tính năng:
+2.Mục tiêu người dùng: (Mô tả dưới dạng "Với vai trò là [ai đó], tôi muốn [làm gì đó] để [đạt được lợi ích gì]")
+3.Mô tả chi tiết: (Giải thích cách tính năng hoạt động từ góc độ người dùng, tập trung vào kết quả đầu ra, không phải cách làm)
+4.Yêu cầu nghiệm thu: (Liệt kê các kịch bản kiểm thử rõ ràng, không phụ thuộc kỹ thuật, để xác nhận tính năng hoàn thành)
+Định dạng toàn bộ tài liệu dưới dạng Markdown.
+
+Bước 2: Sau khi Gemini đã tạo ra toàn bộ nội dung mô tả chi tiết từ câu prompt trên, sử dụng câu PROMT tiếp theo:
+
+Tốt lắm. Bây giờ hãy lưu toàn bộ nội dung mô tả trên như là một tài liệu yêu cầu sản phẩm (Product Requirements Document - PRD) vào một tệp mới có tên là docs/features.md.
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+II. PROMPT khi tạo hoặc sửa đổi tính năng
+
+Mục tiêu: [Mô tả ngắn gọn yêu cầu của bạn. Ví dụ: Thêm màn hình Lịch hàng tháng / Thêm nút 'Xuất PDF' vào AppBar]
+
+Mô tả chi tiết: [Mô tả chi tiết hơn về yêu cầu. Ví dụ: "Màn hình Lịch hàng tháng sẽ hiển thị một lưới lịch của cả tháng. Khi người dùng nhấn vào một ngày, nó sẽ hiển thị danh sách công việc của ngày đó." hoặc "Nút 'Xuất PDF' nên nằm ở góc trên bên phải của AppBar, cạnh thông tin người dùng."]
+
+Quan trọng: Hãy tuân thủ nghiêm ngặt cấu trúc dự án đã được thiết lập:
+- `lib/features/[tên_tính_năng]/pages/`: Dành cho các tệp màn hình chính (Stateful/Stateless Widget).
+- `lib/features/[tên_tính_năng]/widgets/`: Dành cho các widget con, chỉ được sử dụng trong tính năng đó.
+- `lib/presentation/widgets/`: Dành cho các widget có thể tái sử dụng trên toàn bộ ứng dụng.
+- `lib/core/[loại]/`: Dành cho code logic, tiện ích, models, services (ví dụ: `core/utils`, `core/models`).
+
+Trước khi thực hiện bất kỳ thay đổi nào, hãy trả lời các câu hỏi sau:
+1. Bạn sẽ tạo mới hoặc sửa đổi những tệp nào?
+2. Tại sao bạn lại chọn vị trí đó cho các tệp mới/sửa đổi, dựa trên các quy tắc trên?
+
+Sau khi tôi xác nhận kế hoạch của bạn là đúng, hãy tiến hành thực hiện.
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+III. PROMPT khi cần định kỳ kiểm tra cấu trúc dự án
+
+Hãy thực hiện một buổi "đánh giá cấu trúc" (structure review) cho toàn bộ dự án Flutter của tôi.
+
+Dưới đây là các quy tắc vàng về cấu trúc mà chúng ta cần tuân thủ:
+1. `lib/main.dart`: Chỉ chứa hàm `main()`, widget `MyApp` và các cấu hình toàn cục (Theme, ScrollBehavior).
+2. `lib/features/[tên_tính_năng]/pages/`: Chỉ chứa các tệp định nghĩa màn hình hoàn chỉnh.
+3. `lib/features/[tên_tính_năng]/widgets/`: Chỉ chứa các widget con được dùng riêng cho một tính năng.
+4. `lib/presentation/widgets/`: Chỉ chứa các widget có khả năng tái sử dụng cao trên nhiều tính năng.
+5. `lib/core/[loại]/`: Chỉ chứa code logic, tiện ích, model, service (không chứa UI).
+6. `lib/firebase_options.dart`: Phải được giữ nguyên ở thư mục gốc `lib`.
+
+Nhiệm vụ của bạn là quét qua toàn bộ các tệp trong thư mục 'lib' và xác định bất kỳ tệp hoặc lớp (class) nào đang đặt "SAI VỊ TRÍ" so với các quy tắc trên. Với mỗi vi phạm, hãy trình bày theo định dạng:
+
+- **Tệp/Lớp vi phạm:** [Đường dẫn đầy đủ của tệp hoặc tên lớp]
+- **Lý do:** [Giải thích ngắn gọn tại sao nó sai vị trí]
+- **Đề xuất:** [Di chuyển đến thư mục đúng nào]
+
+Nếu không tìm thấy vi phạm nào, hãy báo lại là "Cấu trúc dự án đang được tuân thủ rất tốt."

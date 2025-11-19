@@ -1,24 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'features/schedule/pages/schedule_page.dart';
-import 'core/config/scroll_behavior.dart'; // Import cấu hình mới
+import 'features/auth/pages/login_page.dart'; // Import trang login
+import 'core/config/scroll_behavior.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+
+  // Kiểm tra xem thiết bị đã được cấp phát cho cửa hàng nào chưa
+  final prefs = await SharedPreferences.getInstance();
+  final storeId = prefs.getString('storeId');
+
+  runApp(MyApp(storeId: storeId));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final String? storeId;
+  const MyApp({super.key, this.storeId});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      // Áp dụng hành vi cuộn mới để hỗ trợ trượt chéo tốt hơn
       scrollBehavior: MyCustomScrollBehavior(),
       title: 'Flutter Demo',
       theme: ThemeData(
@@ -36,8 +43,10 @@ class MyApp extends StatelessWidget {
               fontSize: 18, color: Colors.black87, fontWeight: FontWeight.w600),
         ),
       ),
-      // Màn hình chính của ứng dụng bây giờ được gọi từ một tệp riêng biệt
-      home: const SchedulePage(),
+      // Quyết định màn hình khởi động dựa trên việc storeId có tồn tại hay không
+      home: storeId == null
+          ? const LoginPage(isProvisioningMode: true) // Chế độ cấp phát cho Store Manager
+          : SchedulePage(storeId: storeId!),      // Chế độ hoạt động bình thường
     );
   }
 }

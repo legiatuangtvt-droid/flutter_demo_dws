@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import '../../../chat_fab.dart';
-import '../widgets/schedule_table.dart'; // Import widget bảng mới
+import '../../../presentation/widgets/dev_menu_fab.dart'; // <-- THAY ĐỔI ĐƯỜNG DẪN IMPORT
+import '../widgets/schedule_table.dart';
 
 class SchedulePage extends StatefulWidget {
   const SchedulePage({super.key});

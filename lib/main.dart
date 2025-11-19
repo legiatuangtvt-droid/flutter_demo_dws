@@ -350,29 +350,36 @@ class _SchedulePageState extends State<SchedulePage> {
     return Column(
       children: [
         // ---- HÀNG HEADER (CỐ ĐỊNH CHIỀU DỌC) ----
-        Row(
-          children: [
-            // Ô cố định trên cùng bên trái
-            _buildCell(
-                'Nhân viên', firstColWidth, headerHeight, Colors.grey.shade300,
-                isHeader: true),
-            // Các ô header cuộn ngang
-            Expanded(
-              child: SingleChildScrollView(
-                controller: _horizontalHeaderController,
-                scrollDirection: Axis.horizontal,
-                physics: const NeverScrollableScrollPhysics(),
-                // Body sẽ điều khiển scroll
-                child: Row(
-                  children: List.generate(19, (i) {
-                    final hour = '${(i + 5).toString().padLeft(2, '0')}:00';
-                    return _buildCell(hour, dataColWidth * 4, headerHeight,
-                        Colors.grey.shade200, isHeader: true);
-                  }),
+        Container(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: Colors.black, width: borderWidth),
+            ),
+          ),
+          child: Row(
+            children: [
+              // Ô cố định trên cùng bên trái
+              _buildCell(
+                  'Nhân viên', firstColWidth, headerHeight, Colors.grey.shade300,
+                  isHeader: true),
+              // Các ô header cuộn ngang
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _horizontalHeaderController,
+                  scrollDirection: Axis.horizontal,
+                  physics: const NeverScrollableScrollPhysics(),
+                  // Body sẽ điều khiển scroll
+                  child: Row(
+                    children: List.generate(19, (i) {
+                      final hour = '${(i + 5).toString().padLeft(2, '0')}:00';
+                      return _buildCell(hour, dataColWidth * 4, headerHeight,
+                          Colors.grey.shade200, isHeader: true);
+                    }),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         // ---- KHU VỰC CUỘN ----
         Expanded(

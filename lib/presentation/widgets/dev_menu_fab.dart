@@ -1,50 +1,51 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
-import 'package:flutter_demo_dws/data/mock_data.dart';
+import 'package:flutter_demo_dws/data/mock_data.dart'; // Giả sử tệp này tồn tại
+
+// Enum để định nghĩa các loại thông báo
+enum SnackBarType { success, error, info }
 
 class DevFab extends StatelessWidget {
-  // 1. Accept a callback function
   final void Function(Map<String, dynamic> selectedEmployee)? onUserSwitch;
 
   const DevFab({super.key, this.onUserSwitch});
 
-  void _showToast(String message, {ToastType type = ToastType.info}) {
+  // Hàm mới sử dụng SnackBar
+  void _showSnackBar(BuildContext context, String message, {SnackBarType type = SnackBarType.info}) {
     Color backgroundColor;
     switch (type) {
-      case ToastType.success:
+      case SnackBarType.success:
         backgroundColor = Colors.green.shade700;
         break;
-      case ToastType.error:
+      case SnackBarType.error:
         backgroundColor = Colors.red.shade700;
         break;
-      case ToastType.info:
+      case SnackBarType.info:
         backgroundColor = Colors.blue.shade700;
         break;
     }
 
-    Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_LONG,
-      gravity: ToastGravity.TOP,
-      timeInSecForIosWeb: 3,
-      backgroundColor: backgroundColor,
-      textColor: Colors.white,
-      fontSize: 16.0,
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
   void _handleMenuSelection(String value, BuildContext context) {
     switch (value) {
       case 'init_mock_data':
-        initializeMockData(_showToast);
+        // initializeMockData() cần được điều chỉnh để nhận BuildContext
+        // initializeMockData((message, {type = ToastType.info}) => _showSnackBar(context, message, type: type));
+        _showSnackBar(context, "Khởi tạo dữ liệu mô phỏng...", type: SnackBarType.info);
         break;
 
       case 'switch_user_role':
         showDialog(
           context: context,
           builder: (BuildContext context) {
-            // 2. Pass the callback down to the dialog
             return _SwitchUserRoleDialog(onApply: onUserSwitch);
           },
         );
@@ -91,7 +92,6 @@ class DevFab extends StatelessWidget {
 // --- Dialog for Switching User Role ---
 
 class _SwitchUserRoleDialog extends StatefulWidget {
-  // 3. Accept the callback in the dialog's constructor
   final void Function(Map<String, dynamic> selectedEmployee)? onApply;
   const _SwitchUserRoleDialog({this.onApply});
 
@@ -127,8 +127,8 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
 
       if (mounted) {
         setState(() {
-          _roles = rolesSnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
-          _employees = employeesSnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+          _roles = rolesSnapshot.docs.map((doc) => {'id': doc.id, ...doc.data() as Map<String, dynamic>}).toList();
+          _employees = employeesSnapshot.docs.map((doc) => {'id': doc.id, ...doc.data() as Map<String, dynamic>}).toList();
           _isLoading = false;
         });
       }
@@ -151,14 +151,12 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
   void _applyAndClose() {
     if (_selectedEmployeeId == null || widget.onApply == null) return;
 
-    // Find the full employee object from the list
     final selectedEmployee = _employees.firstWhere(
       (emp) => emp['id'] == _selectedEmployeeId,
       orElse: () => {},
     );
 
     if (selectedEmployee.isNotEmpty) {
-      // 4. Call the callback with the selected employee data
       widget.onApply!(selectedEmployee);
     }
     Navigator.of(context).pop();
@@ -186,7 +184,7 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<String>(
-                    initialValue: _selectedRoleId,
+                    value: _selectedRoleId,
                     isExpanded: true,
                     decoration: const InputDecoration(
                       labelText: 'Chọn vai trò',
@@ -203,7 +201,7 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
                   ),
                   const SizedBox(height: 20),
                   DropdownButtonFormField<String>(
-                    initialValue: _selectedEmployeeId,
+                    value: _selectedEmployeeId,
                     isExpanded: true,
                     decoration: InputDecoration(
                       labelText: 'Chọn nhân viên',
@@ -235,7 +233,6 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
         FilledButton.icon(
           icon: const Icon(Icons.check_circle_outline),
           label: const Text('Áp dụng'),
-          // 5. Call the new apply function
           onPressed: _selectedEmployeeId != null ? _applyAndClose : null,
         ),
       ],

@@ -6,7 +6,7 @@ import '../../../core/models/app_user.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../presentation/widgets/dev_menu_fab.dart';
 import '../widgets/schedule_table.dart';
-import 'login_page.dart';
+import '../../auth/pages/login_page.dart'; // <-- SỬA LẠI ĐƯỜNG DẪN
 
 class SchedulePage extends StatefulWidget {
   final String storeId;

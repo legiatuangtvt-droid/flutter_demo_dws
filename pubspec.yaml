@@ -12,7 +12,7 @@ dependencies:
 
   # Core packages
   cupertino_icons: ^1.0.8
-  shared_preferences: ^2.2.3 # Thêm để lưu trữ cục bộ
+  shared_preferences: ^2.2.3
 
   # Firebase & Authentication
   firebase_core: ^2.32.0
@@ -22,7 +22,6 @@ dependencies:
 
   # Utility packages
   wakelock_plus: ^1.2.0
-  fluttertoast: ^8.2.6
 
 dev_dependencies:
   flutter_test:

@@ -158,7 +158,7 @@ class _SchedulePageState extends State<SchedulePage> {
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
-      print("Error fetching initial data: $e");
+      debugPrint("Error fetching initial data: $e");
     }
   }
 
@@ -192,7 +192,6 @@ class _SchedulePageState extends State<SchedulePage> {
               width: 40, // Đặt chiều rộng để tạo hình vuông
               height: 40, // Đặt chiều cao để tạo hình vuông
               decoration: BoxDecoration(
-                color: Colors.deepPurple.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(10.0),
               ),
               child: const Icon(
@@ -297,7 +296,6 @@ class _SchedulePageState extends State<SchedulePage> {
 
     // ---- BODY CUỘN ----
     final bodyRows = List.generate(_storeEmployees.length, (rowIndex) {
-      final employee = _storeEmployees[rowIndex];
       final isEven = rowIndex % 2 == 0;
       final rowBgColor = isEven ? Colors.white : const Color(0xFFF8F9FA);
 

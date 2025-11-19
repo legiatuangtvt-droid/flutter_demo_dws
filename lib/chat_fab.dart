@@ -19,7 +19,6 @@ class DevFab extends StatelessWidget {
         backgroundColor = Colors.red.shade700;
         break;
       case ToastType.info:
-      default:
         backgroundColor = Colors.blue.shade700;
         break;
     }
@@ -135,7 +134,7 @@ class __SwitchUserRoleDialogState extends State<_SwitchUserRoleDialog> {
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
-      print("Error fetching data: $e");
+      debugPrint("Error fetching data: $e");
     }
   }
 

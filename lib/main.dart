@@ -1,7 +1,9 @@
+import 'dart:async'; // Thêm thư viện async
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:wakelock_plus/wakelock_plus.dart'; // Thêm thư viện wakelock
 import 'firebase_options.dart';
 import 'chat_fab.dart';
 
@@ -79,6 +81,9 @@ class _SchedulePageState extends State<SchedulePage> {
   final ScrollController _horizontalHeaderController = ScrollController();
   final ScrollController _verticalFirstColumnController = ScrollController();
 
+  // Thêm bộ đếm thời gian cho wakelock
+  Timer? _wakelockTimer;
+
   @override
   void initState() {
     super.initState();
@@ -105,6 +110,10 @@ class _SchedulePageState extends State<SchedulePage> {
 
   @override
   void dispose() {
+    // Hủy timer và vô hiệu hóa wakelock khi rời khỏi trang
+    _wakelockTimer?.cancel();
+    WakelockPlus.disable();
+
     _horizontalHeaderController.dispose();
     _verticalFirstColumnController.dispose();
     _horizontalBodyController.dispose();
@@ -174,12 +183,70 @@ class _SchedulePageState extends State<SchedulePage> {
           _taskGroups = taskGroups;
           _isLoading = false;
         });
+
+        // Bắt đầu logic của wakelock sau khi có dữ liệu
+        _setupWakelockTimer(schedule);
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
       debugPrint("Error fetching initial data: $e");
     }
   }
+
+  // Hàm mới để thiết lập Wakelock
+  void _setupWakelockTimer(Map<String, dynamic> schedule) {
+    if (schedule.isEmpty) return;
+
+    int minMinutes = 24 * 60;
+    int maxMinutes = -1;
+
+    // Tìm thời gian bắt đầu sớm nhất và kết thúc muộn nhất
+    for (var shiftTasks in schedule.values) {
+      for (var task in (shiftTasks as List)) {
+        try {
+          final String startTime = task['startTime'];
+          final parts = startTime.split(':');
+          if (parts.length == 2) {
+            final minutes = int.parse(parts[0]) * 60 + int.parse(parts[1]);
+            if (minutes < minMinutes) minMinutes = minutes;
+            if (minutes > maxMinutes) maxMinutes = minutes;
+          }
+        } catch (_) {
+          // Bỏ qua nếu có lỗi parsing
+        }
+      }
+    }
+
+    // Nếu không tìm thấy thời gian hợp lệ
+    if (maxMinutes == -1) return;
+
+    final now = DateTime.now();
+    final workdayStart = DateTime(now.year, now.month, now.day, minMinutes ~/ 60, minMinutes % 60);
+    // Thời gian kết thúc ca cuối là thời gian bắt đầu + 15 phút
+    final endMinutes = maxMinutes + 15;
+    final workdayEnd = DateTime(now.year, now.month, now.day, endMinutes ~/ 60, endMinutes % 60);
+
+    void checkAndApplyWakelock() {
+      final currentTime = DateTime.now();
+      if (currentTime.isAfter(workdayStart) && currentTime.isBefore(workdayEnd)) {
+        WakelockPlus.enable();
+        debugPrint("Wakelock ENABLED - In shift hours.");
+      } else {
+        WakelockPlus.disable();
+        debugPrint("Wakelock DISABLED - Outside shift hours.");
+      }
+    }
+
+    // Kiểm tra ngay lập tức
+    checkAndApplyWakelock();
+
+    // Và kiểm tra định kỳ mỗi phút
+    _wakelockTimer?.cancel();
+    _wakelockTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      checkAndApplyWakelock();
+    });
+  }
+
 
   void _updateCurrentUser(Map<String, dynamic> selectedEmployee) {
     setState(() {

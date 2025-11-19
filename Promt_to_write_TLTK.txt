@@ -1,0 +1,17 @@
+Bước 1: Sử dụng mẫu PROMPT chuẩn sau đây:
+
+Hãy đóng vai trò là một người quản lý sản phẩm (Product Manager). 
+Dựa trên việc phân tích giao diện và hoạt động của dự án demo này, hãy viết một tài liệu mô tả yêu cầu tính năng dành cho đội ngũ phát triển.
+Quan trọng: Bản mô tả này phải hoàn toàn độc lập với công nghệ. 
+Không được đề cập đến bất kỳ tên công cụ, thư viện, cơ sở dữ liệu, hay cấu trúc code cụ thể nào từ bản demo. 
+Hãy mô tả các yêu cầu dưới góc độ của người dùng cuối và mục tiêu nghiệp vụ, để cho đội ngũ phát triển tự do lựa chọn công nghệ phù hợp nhất để hiện thực hóa các yêu cầu này.
+Với mỗi tính năng chính của ứng dụng, hãy trình bày theo cấu trúc sau:
+1.Tên Tính năng:
+2.Mục tiêu người dùng: (Mô tả dưới dạng "Với vai trò là [ai đó], tôi muốn [làm gì đó] để [đạt được lợi ích gì]")
+3.Mô tả chi tiết: (Giải thích cách tính năng hoạt động từ góc độ người dùng, tập trung vào kết quả đầu ra, không phải cách làm)
+4.Yêu cầu nghiệm thu: (Liệt kê các kịch bản kiểm thử rõ ràng, không phụ thuộc kỹ thuật, để xác nhận tính năng hoàn thành)
+Định dạng toàn bộ tài liệu dưới dạng Markdown.
+
+Bước 2: Sau khi Gemini đã tạo ra toàn bộ nội dung mô tả chi tiết từ câu prompt trên, sử dụng câu PROMT tiếp theo:
+
+Tốt lắm. Bây giờ hãy lưu toàn bộ nội dung mô tả trên như là một tài liệu yêu cầu sản phẩm (Product Requirements Document - PRD) vào một tệp mới có tên là docs/features.md.
